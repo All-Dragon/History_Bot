@@ -5,6 +5,10 @@ from urllib.parse import quote
 from environs import Env
 
 @dataclass
+class APISettings:
+    base_url: str
+
+@dataclass
 class BotSettings:
     token: str
     admin_ids: list[int]
@@ -33,6 +37,7 @@ class Config:
     bot: BotSettings
     db: DatabaseSettings
     redis: RedisSettings
+    api: APISettings
 
 
 def load_config(path: str | None = None) -> Config:
@@ -69,11 +74,16 @@ def load_config(path: str | None = None) -> Config:
         username=env("REDIS_USERNAME", default=""),
     )
 
+    api = APISettings(
+        base_url= os.getenv('API_BASE_URL', 'http://localhost:8000')
+    )
+
 
     return Config(
         bot=BotSettings(token=token, admin_ids=admin_ids),
         db=db,
         redis=redis,
+        api = api,
     )
 
 def generate_url_db():
@@ -81,6 +91,8 @@ def generate_url_db():
     url = f'postgresql+asyncpg://{quote(config.db.user, safe='')}:{quote(config.db.password, safe = '')}@{config.db.host}:{config.db.port}/{config.db.name}'
     return url
 
+if __name__ == "__main__":
+    config = load_config()
+    print(config.api.base_url)
 
-print(generate_url_db())
 

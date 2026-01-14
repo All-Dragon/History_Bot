@@ -5,6 +5,12 @@ from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, Session, rela
 from sqlalchemy.types import DateTime, JSON
 from datetime import datetime
 from typing import Optional
+from sqlalchemy.dialects.postgresql import ENUM as PG_ENUM
+
+roles = ('Ученик', 'Преподаватель', 'Админ')
+default_role = 'Ученик'
+user_role_enum = PG_ENUM(*roles, name = 'user_role')
+
 class Base(DeclarativeBase):
     pass
 
@@ -14,7 +20,13 @@ class Users(Base):
     id: Mapped[int] = mapped_column(Integer, primary_key= True)
     telegram_id: Mapped[int] = mapped_column(Integer, unique= True, index = True)
     username: Mapped[Optional[str]] = mapped_column(String, nullable= True)
-    role: Mapped[str] = mapped_column(String, default='student')
+
+    role: Mapped[str] = mapped_column(
+        user_role_enum,
+        default= default_role,
+        nullable= False
+    )
+
     is_banned: Mapped[bool] = mapped_column(Boolean, default=False, index=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     updated_at: Mapped[Optional[datetime]] = mapped_column(
