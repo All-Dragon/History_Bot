@@ -1,15 +1,18 @@
 from sqlalchemy import create_engine, String, Integer, ForeignKey, text, Boolean, select, or_, desc, asc, func, Table, \
-    Column
+    Column, case, update
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, Session, relationship, selectinload, joinedload, \
     sessionmaker
+from sqlalchemy.dialects.postgresql import ENUM
 from sqlalchemy.types import DateTime, JSON
 from datetime import datetime
 from typing import Optional
 from sqlalchemy.dialects.postgresql import ENUM as PG_ENUM
 
 roles = ('Ученик', 'Преподаватель', 'Админ')
-default_role = 'Ученик'
 user_role_enum = PG_ENUM(*roles, name = 'user_role')
+
+question_types = ('multiple_choice', 'free_text'),
+question_types_enum = PG_ENUM(*question_types, name = 'question_type')
 
 class Base(DeclarativeBase):
     pass
@@ -23,9 +26,16 @@ class Users(Base):
 
     role: Mapped[str] = mapped_column(
         user_role_enum,
-        default= default_role,
+        default= 'Ученик',
         nullable= False
     )
+
+    deleted_at: Mapped[Optional[datetime]] = mapped_column(
+        DateTime(timezone= True),
+        nullable= True,
+        index = True
+    )
+
 
     is_banned: Mapped[bool] = mapped_column(Boolean, default=False, index=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
@@ -44,13 +54,23 @@ class Users(Base):
         'Groups', back_populates='teacher', foreign_keys='Groups.teacher_id'
     )
 
+    @classmethod
+    def active(cls):
+        return cls.deleted_at.is_(None)
+    @classmethod
+    def non_active(cls):
+        return cls.deleted_at.is_not(None)
+    @classmethod
+    def by_telegram_id(cls, telegram_id: int):
+        return cls.telegram_id == telegram_id
+
 
 class Questions(Base):
     __tablename__ = 'questions'
 
     id: Mapped[int] = mapped_column(Integer, primary_key= True)
     text: Mapped[str] = mapped_column(String, nullable= False)
-    options: Mapped[list[str]] = mapped_column(JSON, nullable= False)
+    options: Mapped[Optional[list[str]]] = mapped_column(JSON, nullable= True, default= None)
     correct_answer: Mapped[str] = mapped_column(String, nullable= False)
     topic: Mapped[str | None] = mapped_column(String, nullable= True)
     difficulty: Mapped[int] = mapped_column(Integer, default= 1)
@@ -62,6 +82,12 @@ class Questions(Base):
         DateTime(timezone=True),
         nullable=True,
         onupdate=func.now()
+    )
+    question_type: Mapped[str] = mapped_column(
+        question_types_enum,
+        default = 'multiple_choice',
+        index = True,
+        nullable= False
     )
 
 

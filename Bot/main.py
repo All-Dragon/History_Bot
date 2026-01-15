@@ -72,8 +72,8 @@ async def get_username(message: Message, state: FSMContext) -> None:
     await state.update_data(username = message.text)
 
     kb_builder = InlineKeyboardBuilder()
-    button1 = InlineKeyboardButton(text = 'Ученик', callback_data= 'student')
-    button2 = InlineKeyboardButton(text = 'Преподаватель', callback_data= 'teacher')
+    button1 = InlineKeyboardButton(text = 'Ученик', callback_data= 'Ученик')
+    button2 = InlineKeyboardButton(text = 'Преподаватель', callback_data= 'Преподаватель')
 
     kb_builder.add(button1, button2)
     kb_builder.adjust(1, 1)
@@ -88,7 +88,7 @@ async def invalid_username(message: Message) -> None:
         "Имя должно содержать только буквы и пробелы"
     )
 
-@dp.callback_query(StateFilter(RegistrationState.fill_role), F.data.in_(['student', 'teacher']))
+@dp.callback_query(StateFilter(RegistrationState.fill_role), F.data.in_(['Ученик', 'Преподаватель']))
 async def get_role(callback: CallbackQuery, state: FSMContext) -> None:
     await callback.answer()
     role = callback.data

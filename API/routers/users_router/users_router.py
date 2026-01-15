@@ -1,0 +1,151 @@
+from API.routers.users_router.users_schemas import *
+from Database.database import get_async_session, AsyncSession
+from Database.models import *
+from fastapi import Depends, status, HTTPException, APIRouter
+
+
+users_router = APIRouter(
+    prefix= '/users',
+    tags= ['users']
+)
+
+@users_router.get('')
+async def get_all_users(session: AsyncSession = Depends(get_async_session)):
+    result = await session.scalars(select(Users))
+    result = result.all()
+    return result
+
+@users_router.get('/{telegram_id}')
+async def get_user(telegram_id: int, session: AsyncSession = Depends(get_async_session)):
+    result = await session.scalar(select(Users).where(Users.by_telegram_id(telegram_id)))
+    if result is None:
+        raise HTTPException(status_code= status.HTTP_404_NOT_FOUND, detail= f'Пользователь с таким telegram_id не найден: {telegram_id}')
+    return result
+
+@users_router.get('/stats', response_model=Stats_User)
+async def get_stats_user(session: AsyncSession = Depends(get_async_session)):
+    try:
+        result = await session.execute(
+            select(
+                func.count(Users.id).label('total_user'),
+
+                func.count(
+                    case(
+                        (Users.deleted_at.is_(None), Users.id)
+                    )
+                ).label('current_user'),
+
+                func.count(
+                    case(
+                        (Users.deleted_at.isnot(None), Users.id)
+                    )
+                ).label('deleted_user')
+            )
+        )
+        stats_row = result.one()
+        stats_data = {
+            'total_user': stats_row.total_user,
+            'current_user': stats_row.current_user,
+            'deleted_user': stats_row.deleted_user
+        }
+        return Stats_User(**stats_data)
+
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to retrieve statistics"
+        )
+
+
+@users_router.post('/create', response_model= ReadUser, status_code= status.HTTP_201_CREATED)
+async def create_new_user(data: CreateUser, session: AsyncSession = Depends(get_async_session)):
+    double = await session.scalar(select(Users).where(Users.telegram_id == data.telegram_id))
+    if double:
+        raise HTTPException(status_code= status.HTTP_400_BAD_REQUEST, detail= 'Пользователь уже существует!')
+
+    new_user = Users(
+        telegram_id = data.telegram_id,
+        username = data.username,
+        role = data.role,
+        is_banned = data.is_banned
+    )
+
+    session.add(new_user)
+    await session.commit()
+    await session.refresh(new_user)
+    return new_user
+
+@users_router.put('/change/{telegram_id}', response_model= ReadUser)
+async def change(id: int, data: Change_User, session: AsyncSession = Depends(get_async_session)):
+
+    user = await session.scalar(select(Users).where(Users.telegram_id == id))
+    if user is None:
+        raise HTTPException(status_code= status.HTTP_404_NOT_FOUND, detail= 'Пользователь с таким id не найден')
+
+    updated_data = data.model_dump(exclude_unset=True, exclude_none= True)
+
+    for field, value in updated_data.items():
+        setattr(user, field, value)
+
+    await session.commit()
+    await session.refresh(user)
+    return user
+
+@users_router.delete('/hard_del/{telegram_id}', status_code= status.HTTP_204_NO_CONTENT)
+async def hard_delete_user(telegram_id: int, session: AsyncSession = Depends(get_async_session)):
+    item_to_del = await session.scalar(select(Users).where(Users.telegram_id == id))
+    if item_to_del is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail= 'Такого пользователя не существует')
+
+    await session.delete(item_to_del)
+    try:
+        await session.commit()
+    except Exception as e:
+        session.rollback()
+        print(f"Rollback due to error: {e}")
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Database error during commit")
+
+    return
+
+@users_router.delete('/soft_del/{telegram_id}', status_code = status.HTTP_204_NO_CONTENT)
+async def soft_delete_user(telegram_id: int, session: AsyncSession = Depends(get_async_session)):
+    result = await session.execute(
+        update(Users)
+        .where(
+            Users.by_telegram_id(telegram_id),
+               Users.active()
+           ).values(deleted_at = datetime.now(timezone.utc))
+        .returning(Users.telegram_id)
+    )
+
+    if not result:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="User not found or already deleted"
+        )
+    await session.commit()
+    return
+
+@users_router.put('/restore_user/{telegram_id}', response_model= ReadUser)
+async def restore_user(telegram_id: int, session: AsyncSession = Depends(get_async_session)):
+    result = await session.execute(
+        update(Users)
+        .where(
+            Users.by_telegram_id(telegram_id),
+            Users.non_active()
+        )
+        .values(deleted_at=None)
+        .returning(Users)
+    )
+
+    user = result.scalar_one_or_none()
+
+    if user is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="User not found or not deleted"
+        )
+
+    await session.commit()
+    return user
+
