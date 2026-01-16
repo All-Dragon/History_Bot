@@ -2,14 +2,15 @@ from API.routers.questions_router.questions_shemas import *
 from Database.database import get_async_session, AsyncSession
 from Database.models import *
 from fastapi import Depends, status, HTTPException, APIRouter
-
+from typing import List
+from JWS.auth import get_current_user, require_role
 questions_router = APIRouter(
     prefix= '/question',
     tags = ['question']
 )
 
 
-@questions_router.get('')
+@questions_router.get('', response_model=List[QuestionOut])
 async def get_all_questions(session: AsyncSession = Depends(get_async_session)):
     result = await session.scalars(select(Questions))
     result = result.all()
@@ -20,12 +21,17 @@ async def get_question_by_id(question_id: int, session: AsyncSession = Depends(g
     result = await session.scalar(select(Questions).where(Questions.id == question_id))
     if not result:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail= f'Вопрос с ID: {question_id} не найден')
-    return result
+    return QuestionOut.model_validate(result)
 
 
 @questions_router.post('/new', status_code= status.HTTP_201_CREATED, response_model= QuestionOut)
-async def create_question(data: QuestionCreate, session: AsyncSession = Depends(get_async_session)):
-    created_by = 1 # Заглушка, потом смени на telegram_id
+async def create_question(
+        data: QuestionCreate,
+        session: AsyncSession = Depends(get_async_session),
+        current_user: Users = Depends(get_current_user)):
+
+    if current_user.role not in ["teacher", "moderator"]:
+        raise HTTPException(403, "Только учителя и модераторы могут создавать вопросы")
 
     if data.question_type == 'multiple_choice':
         if not data.options:
@@ -42,12 +48,12 @@ async def create_question(data: QuestionCreate, session: AsyncSession = Depends(
 
     question = Questions(
         text = data.text,
-        options = data.options,
+        options = list(data.options) if data.options else None,
         correct_answer = data.correct_answer,
         topic = data.topic,
         difficulty = data.difficulty,
-        created_by = created_by,
-        image_url = data.image_url,
+        created_by = current_user.id,
+        image_url = str(data.image_url),
         status = data.status,
         question_type = data.question_type,
     )
@@ -61,4 +67,5 @@ async def create_question(data: QuestionCreate, session: AsyncSession = Depends(
             status_code= status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail= f'Ошибка: {str(e)}'
         )
-    return question
+
+    return QuestionOut.model_validate(question)

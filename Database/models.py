@@ -7,11 +7,12 @@ from sqlalchemy.types import DateTime, JSON
 from datetime import datetime
 from typing import Optional
 from sqlalchemy.dialects.postgresql import ENUM as PG_ENUM
+from sqlalchemy.ext.mutable import MutableList
 
 roles = ('Ученик', 'Преподаватель', 'Админ')
 user_role_enum = PG_ENUM(*roles, name = 'user_role')
 
-question_types = ('multiple_choice', 'free_text'),
+question_types = ('multiple_choice', 'free_text')
 question_types_enum = PG_ENUM(*question_types, name = 'question_type')
 
 class Base(DeclarativeBase):
@@ -70,7 +71,12 @@ class Questions(Base):
 
     id: Mapped[int] = mapped_column(Integer, primary_key= True)
     text: Mapped[str] = mapped_column(String, nullable= False)
-    options: Mapped[Optional[list[str]]] = mapped_column(JSON, nullable= True, default= None)
+
+    options: Mapped[Optional[list[str]]] = mapped_column(
+        MutableList.as_mutable(JSON),
+        nullable=True
+    )
+
     correct_answer: Mapped[str] = mapped_column(String, nullable= False)
     topic: Mapped[str | None] = mapped_column(String, nullable= True)
     difficulty: Mapped[int] = mapped_column(Integer, default= 1)

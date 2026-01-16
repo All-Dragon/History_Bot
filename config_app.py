@@ -5,6 +5,12 @@ from urllib.parse import quote
 from environs import Env
 
 @dataclass
+class JWTSettings:
+    SECRET_KEY: str
+    ALGORITHM: str
+    ACCESS_TOKEN_EXPIRE_MINUTES: int
+
+@dataclass
 class APISettings:
     base_url: str
 
@@ -38,6 +44,7 @@ class Config:
     db: DatabaseSettings
     redis: RedisSettings
     api: APISettings
+    jwt: JWTSettings
 
 
 def load_config(path: str | None = None) -> Config:
@@ -78,12 +85,19 @@ def load_config(path: str | None = None) -> Config:
         base_url= os.getenv('API_BASE_URL', 'http://localhost:8000')
     )
 
+    jwt = JWTSettings(
+        SECRET_KEY= os.getenv('SECRET_KEY'),
+        ALGORITHM = os.getenv('ALGORITHM'),
+        ACCESS_TOKEN_EXPIRE_MINUTES= os.getenv('ACCESS_TOKEN_EXPIRE_MINUTES')
+    )
+
 
     return Config(
         bot=BotSettings(token=token, admin_ids=admin_ids),
         db=db,
         redis=redis,
         api = api,
+        jwt = jwt
     )
 
 def generate_url_db():
@@ -93,6 +107,6 @@ def generate_url_db():
 
 if __name__ == "__main__":
     config = load_config()
-    print(config.api.base_url)
+    print(config.jwt.ALGORITHM)
 
 
