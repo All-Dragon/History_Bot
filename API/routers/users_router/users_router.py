@@ -2,7 +2,9 @@ from API.routers.users_router.users_schemas import *
 from Database.database import get_async_session, AsyncSession
 from Database.models import *
 from fastapi import Depends, status, HTTPException, APIRouter
+from JWS.auth import require_role
 
+current_user: Users = Depends(require_role('Преподаватель', 'Модератор'))
 
 users_router = APIRouter(
     prefix= '/users',
@@ -92,7 +94,10 @@ async def change(id: int, data: Change_User, session: AsyncSession = Depends(get
     return user
 
 @users_router.delete('/hard_del/{telegram_id}', status_code= status.HTTP_204_NO_CONTENT)
-async def hard_delete_user(telegram_id: int, session: AsyncSession = Depends(get_async_session)):
+async def hard_delete_user(
+        telegram_id: int,
+        session: AsyncSession = Depends(get_async_session),
+        current_user: Users = Depends(require_role('Преподаватель', 'Модератор'))):
     item_to_del = await session.scalar(select(Users).where(Users.telegram_id == id))
     if item_to_del is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail= 'Такого пользователя не существует')
@@ -108,7 +113,10 @@ async def hard_delete_user(telegram_id: int, session: AsyncSession = Depends(get
     return
 
 @users_router.delete('/soft_del/{telegram_id}', status_code = status.HTTP_204_NO_CONTENT)
-async def soft_delete_user(telegram_id: int, session: AsyncSession = Depends(get_async_session)):
+async def soft_delete_user(
+        telegram_id: int,
+        session: AsyncSession = Depends(get_async_session),
+        current_user: Users = Depends(require_role('Преподаватель', 'Модератор'))):
     result = await session.execute(
         update(Users)
         .where(
@@ -127,7 +135,10 @@ async def soft_delete_user(telegram_id: int, session: AsyncSession = Depends(get
     return
 
 @users_router.put('/restore_user/{telegram_id}', response_model= ReadUser)
-async def restore_user(telegram_id: int, session: AsyncSession = Depends(get_async_session)):
+async def restore_user(
+        telegram_id: int,
+        session: AsyncSession = Depends(get_async_session),
+        current_user: Users = Depends(require_role('Преподаватель', 'Модератор'))):
     result = await session.execute(
         update(Users)
         .where(

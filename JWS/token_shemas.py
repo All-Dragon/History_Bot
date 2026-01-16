@@ -7,8 +7,8 @@ class Token(BaseModel):
     token_type: str = 'bearer'
 
 class Token_Data(BaseModel):
-    telegram_id: int | None = None
-    role: str | None = None
+    telegram_id: int
+    role: str
 
 class Telegram_Login(BaseModel):
     telegram_id: int

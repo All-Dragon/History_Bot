@@ -28,10 +28,7 @@ async def get_question_by_id(question_id: int, session: AsyncSession = Depends(g
 async def create_question(
         data: QuestionCreate,
         session: AsyncSession = Depends(get_async_session),
-        current_user: Users = Depends(get_current_user)):
-
-    if current_user.role not in ["teacher", "moderator"]:
-        raise HTTPException(403, "Только учителя и модераторы могут создавать вопросы")
+        current_user: Users = Depends(require_role('Преподаватель', 'Модератор'))):
 
     if data.question_type == 'multiple_choice':
         if not data.options:
