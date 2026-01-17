@@ -3,7 +3,7 @@ from Database.database import get_async_session, AsyncSession
 from Database.models import *
 from fastapi import Depends, status, HTTPException, APIRouter
 from typing import List
-from JWS.auth import get_current_user, require_role
+from JWT.auth import get_current_user, require_role
 questions_router = APIRouter(
     prefix= '/question',
     tags = ['question']
@@ -28,7 +28,7 @@ async def get_question_by_id(question_id: int, session: AsyncSession = Depends(g
 async def create_question(
         data: QuestionCreate,
         session: AsyncSession = Depends(get_async_session),
-        current_user: Users = Depends(require_role('Преподаватель', 'Модератор'))):
+        current_user: Users = Depends(require_role('Преподаватель', 'Админ'))):
 
     if data.question_type == 'multiple_choice':
         if not data.options:

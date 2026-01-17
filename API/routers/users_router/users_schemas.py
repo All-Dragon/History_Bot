@@ -55,3 +55,11 @@ class Stats_User(BaseModel):
     total_user: int
     current_user: int
     deleted_user: int
+
+class User_Out(BaseModel):
+    id: int
+    telegram_id: int
+    role: str
+    is_banned: bool
+
+    model_config = {"from_attributes": True}

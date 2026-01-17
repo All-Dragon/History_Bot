@@ -4,8 +4,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from Database.database import get_async_session
 from Database.models import Users
-from JWS.token_shemas import Token, Telegram_Login
-from JWS.security import create_access_token
+from JWT.token_shemas import Token, Telegram_Login
+from JWT.security import create_access_token
 from config_app import load_config, Config
 
 authorization_router = APIRouter(prefix = '/auth', tags= ['auth'])

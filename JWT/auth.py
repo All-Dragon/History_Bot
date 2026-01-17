@@ -2,10 +2,10 @@ from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
-from JWS.security import decode_token
+from JWT.security import decode_token
 from Database.database import get_async_session
 from Database.models import Users
-from JWS.token_shemas import Token_Data
+from JWT.token_shemas import Token_Data
 
 security = HTTPBearer()  # Вместо OAuth2PasswordBearer
 

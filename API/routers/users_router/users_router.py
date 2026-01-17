@@ -2,9 +2,8 @@ from API.routers.users_router.users_schemas import *
 from Database.database import get_async_session, AsyncSession
 from Database.models import *
 from fastapi import Depends, status, HTTPException, APIRouter
-from JWS.auth import require_role
+from JWT.auth import require_role, get_current_user
 
-current_user: Users = Depends(require_role('Преподаватель', 'Модератор'))
 
 users_router = APIRouter(
     prefix= '/users',
@@ -12,20 +11,32 @@ users_router = APIRouter(
 )
 
 @users_router.get('')
-async def get_all_users(session: AsyncSession = Depends(get_async_session)):
+async def get_all_users(session: AsyncSession = Depends(get_async_session),
+                        current_user: Users = Depends(require_role('Админ'))):
     result = await session.scalars(select(Users))
     result = result.all()
     return result
 
+@users_router.get('/me', response_model= User_Out)
+async def get_users_info(current_user: Users = Depends(get_current_user)):
+    return User_Out.model_validate(current_user)
+
 @users_router.get('/{telegram_id}')
-async def get_user(telegram_id: int, session: AsyncSession = Depends(get_async_session)):
+async def get_user(telegram_id: int,
+                   session: AsyncSession = Depends(get_async_session)):
     result = await session.scalar(select(Users).where(Users.by_telegram_id(telegram_id)))
     if result is None:
         raise HTTPException(status_code= status.HTTP_404_NOT_FOUND, detail= f'Пользователь с таким telegram_id не найден: {telegram_id}')
     return result
 
+
+
+
+
+
 @users_router.get('/stats', response_model=Stats_User)
-async def get_stats_user(session: AsyncSession = Depends(get_async_session)):
+async def get_stats_user(session: AsyncSession = Depends(get_async_session),
+                         current_user: Users = Depends(require_role('Админ'))):
     try:
         result = await session.execute(
             select(
@@ -78,7 +89,10 @@ async def create_new_user(data: CreateUser, session: AsyncSession = Depends(get_
     return new_user
 
 @users_router.put('/change/{telegram_id}', response_model= ReadUser)
-async def change(id: int, data: Change_User, session: AsyncSession = Depends(get_async_session)):
+async def change(id: int,
+                 data: Change_User,
+                 session: AsyncSession = Depends(get_async_session),
+                 current_user = Depends(require_role('Админ'))):
 
     user = await session.scalar(select(Users).where(Users.telegram_id == id))
     if user is None:
@@ -97,7 +111,7 @@ async def change(id: int, data: Change_User, session: AsyncSession = Depends(get
 async def hard_delete_user(
         telegram_id: int,
         session: AsyncSession = Depends(get_async_session),
-        current_user: Users = Depends(require_role('Преподаватель', 'Модератор'))):
+        current_user: Users = Depends(require_role('Преподаватель', 'Админ'))):
     item_to_del = await session.scalar(select(Users).where(Users.telegram_id == id))
     if item_to_del is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail= 'Такого пользователя не существует')
@@ -115,8 +129,7 @@ async def hard_delete_user(
 @users_router.delete('/soft_del/{telegram_id}', status_code = status.HTTP_204_NO_CONTENT)
 async def soft_delete_user(
         telegram_id: int,
-        session: AsyncSession = Depends(get_async_session),
-        current_user: Users = Depends(require_role('Преподаватель', 'Модератор'))):
+        session: AsyncSession = Depends(get_async_session)):
     result = await session.execute(
         update(Users)
         .where(
@@ -138,7 +151,7 @@ async def soft_delete_user(
 async def restore_user(
         telegram_id: int,
         session: AsyncSession = Depends(get_async_session),
-        current_user: Users = Depends(require_role('Преподаватель', 'Модератор'))):
+        current_user: Users = Depends(require_role('Преподаватель', 'Админ'))):
     result = await session.execute(
         update(Users)
         .where(
