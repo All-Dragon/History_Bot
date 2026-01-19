@@ -10,7 +10,7 @@ from aiogram.types import (InlineKeyboardMarkup,InlineKeyboardButton, Message, R
 from config_app import Config, load_config
 import aiohttp
 from typing import Callable, Awaitable, Any
-from aiogram.utils.keyboard import InlineKeyboardBuilder, InlineKeyboardButton
+from Bot.utils.keyboards import get_markup_registration_role
 import asyncio
 
 config: Config = load_config()
@@ -39,7 +39,7 @@ class RegistrationBlockMiddleware(BaseMiddleware):
                 ) as response:
 
                     if response.status == 200:
-                        await event.answer('⚠️ Вы уже зарегистрированы!')
+                        await event.answer('⚠️ Вы уже зарегистрированы!\nДля получения доступа к функциям ипользуйте /login!')
                         return  # ❌ дальше не идём
 
                     if response.status == 404:
@@ -80,16 +80,7 @@ async def start_registration(message: Message, state: FSMContext) -> None:
 @registration_router.message(StateFilter(RegistrationState.fill_username), lambda x: x.text and all([i.isalpha() for i in x.text.split()]))
 async def get_username(message: Message, state: FSMContext) -> None:
     await state.update_data(username = message.text)
-
-    kb_builder = InlineKeyboardBuilder()
-    button1 = InlineKeyboardButton(text = 'Ученик', callback_data= 'Ученик')
-    button2 = InlineKeyboardButton(text = 'Преподаватель', callback_data= 'Преподаватель')
-
-    kb_builder.add(button1, button2)
-    kb_builder.adjust(1, 1)
-    markup = kb_builder.as_markup()
-
-    await message.answer('Пожалуйста, укажите кто Вы', reply_markup= markup)
+    await message.answer('Пожалуйста, укажите кто Вы', reply_markup= get_markup_registration_role())
     await state.set_state(RegistrationState.fill_role)
 
 @registration_router.message(StateFilter(RegistrationState.fill_username))

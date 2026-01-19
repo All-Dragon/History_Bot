@@ -74,7 +74,8 @@ class Questions(Base):
 
     options: Mapped[Optional[list[str]]] = mapped_column(
         MutableList.as_mutable(JSON),
-        nullable=True
+        nullable=True,
+        default = None
     )
 
     correct_answer: Mapped[str] = mapped_column(String, nullable= False)

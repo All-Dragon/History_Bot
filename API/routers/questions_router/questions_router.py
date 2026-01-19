@@ -50,7 +50,7 @@ async def create_question(
         topic = data.topic,
         difficulty = data.difficulty,
         created_by = current_user.id,
-        image_url = str(data.image_url),
+        image_url = str(data.image_url) if data.image_url else None,
         status = data.status,
         question_type = data.question_type,
     )

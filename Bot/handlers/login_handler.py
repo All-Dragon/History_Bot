@@ -63,7 +63,7 @@ async def confirm_login(callback: CallbackQuery, state = FSMContext):
 
                 await callback.message.edit_text(
                 "✅ Успешная авторизация!\n"
-                "Теперь вы можете использовать команды для учителей (/add_question и т.д.)"
+                "Теперь вы можете использовать команды для учителей (/add_questions и т.д.)"
                 )
     except Exception as e:
         await callback.message.answer(f'{str(e)}')

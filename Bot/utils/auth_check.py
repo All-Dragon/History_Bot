@@ -10,7 +10,7 @@ async def check_user_has_role(
         state: FSMContext,
         required_role: list[str] = ["Преподаватель", "Админ"]
 ) -> bool:
-    data = state.get_data()
+    data = await state.get_data()
     user_token = data.get('user_token')
 
     if not user_token:
@@ -19,7 +19,7 @@ async def check_user_has_role(
 
     try:
         async with aiohttp.ClientSession() as session:
-            async with session.post(f'{config.api.base_url}/users/me', headers= {"Authorization": f"Bearer {user_token}"}) as response:
+            async with session.get(f'{config.api.base_url}/users/me', headers= {"Authorization": f"Bearer {user_token}"}) as response:
                 if response.status == 401:
                     await message.answer("Сессия истекла. Пожалуйста, войдите заново (/login)")
                     await state.clear()

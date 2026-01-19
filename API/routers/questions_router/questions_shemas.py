@@ -7,7 +7,7 @@ class QuestionBase(BaseModel):
     text: str = Field(..., min_length=8, max_length=2000)
     topic: Optional[str] = Field(None, max_length=120)
     difficulty: int = Field(default=1, ge=1, le=5)
-    image_url: Optional[HttpUrl] = None
+    image_url: Optional[str] = None
     status: Literal["draft", "published", "archived"] = "draft"
     question_type: Literal["multiple_choice", "free_text"] = "multiple_choice"
 
@@ -74,6 +74,14 @@ class QuestionOut(QuestionBase):
             return [str(item) for item in v]
         raise ValueError("Некорректный формат options")
 
+    @field_validator("image_url", mode="before")
+    @classmethod
+    def fix_none_string(cls, v):
+        if v == "None" or v == "null":
+            return None
+        return v
+
     model_config = {"from_attributes": True}
 
     model_config = {"from_attributes": True}
+
