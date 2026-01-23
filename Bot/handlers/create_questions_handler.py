@@ -59,18 +59,42 @@ async def edit_or_send_message(
         if isinstance(message_or_query, Message):
             chat_id = message_or_query.chat.id
             bot = message_or_query.bot
+            message = message_or_query
         else:  # CallbackQuery
             chat_id = message_or_query.message.chat.id
             bot = message_or_query.bot
+            message = message_or_query.message
         
         if step_msg_id:
-            await bot.edit_message_text(
-                chat_id=chat_id,
-                message_id=step_msg_id,
-                text=text,
-                reply_markup=reply_markup,
-                parse_mode="HTML"
-            )
+            # Пытаемся отредактировать как текстовое сообщение
+            try:
+                await bot.edit_message_text(
+                    chat_id=chat_id,
+                    message_id=step_msg_id,
+                    text=text,
+                    reply_markup=reply_markup,
+                    parse_mode="HTML"
+                )
+            except Exception:
+                # Если это сообщение с фото/медиа, редактируем caption
+                try:
+                    await bot.edit_message_caption(
+                        chat_id=chat_id,
+                        message_id=step_msg_id,
+                        caption=text,
+                        reply_markup=reply_markup,
+                        parse_mode="HTML"
+                    )
+                except Exception:
+                    # Если ничего не сработало, удаляем старое и отправляем новое
+                    try:
+                        await bot.delete_message(chat_id=chat_id, message_id=step_msg_id)
+                    except Exception:
+                        pass
+                    
+                    msg = await message.answer(text, reply_markup=reply_markup, parse_mode="HTML")
+                    await state.update_data(step_msg_id=msg.message_id)
+                    return msg
             return None
         else:
             if isinstance(message_or_query, Message):
@@ -110,7 +134,6 @@ def get_difficulty_name(difficulty: int) -> str:
 
 
 async def go_to_step(callback: CallbackQuery, state: FSMContext, target_step: int):
-    """Переходит на указанный шаг"""
     data = await state.get_data()
     
     if target_step == 1:
@@ -251,26 +274,62 @@ async def show_preview(message_or_query: Message | CallbackQuery, state: FSMCont
     image_file_id = data.get('image')
 
     if image_file_id:
-        if isinstance(message_or_query, Message):
-            await message_or_query.answer_photo(
-                photo=image_file_id,
-                caption=preview_text + "\n\nВыберите статус:",
-                reply_markup=keyboard,
-                parse_mode="HTML"
-            )
+        if isinstance(message_or_query, CallbackQuery):
+            try:
+                await message_or_query.message.edit_media(
+                    media=types.InputMediaPhoto(
+                        media=image_file_id,
+                        caption=preview_text + "\n\nВыберите статус:",
+                        parse_mode="HTML"
+                    ),
+                    reply_markup=keyboard
+                )
+            except Exception:
+                await message_or_query.message.answer_photo(
+                    photo=image_file_id,
+                    caption=preview_text + "\n\nВыберите статус:",
+                    reply_markup=keyboard,
+                    parse_mode="HTML"
+                )
         else:
-            await message_or_query.message.answer_photo(
-                photo=image_file_id,
-                caption=preview_text + "\n\nВыберите статус:",
-                reply_markup=keyboard,
-                parse_mode="HTML"
-            )
+            chat_id = message_or_query.chat.id
+            bot = message_or_query.bot
+            step_msg_id = data.get('step_msg_id')
+            
+            if step_msg_id:
+                try:
+                    await bot.edit_message_media(
+                        chat_id=chat_id,
+                        message_id=step_msg_id,
+                        media=types.InputMediaPhoto(
+                            media=image_file_id,
+                            caption=preview_text + "\n\nВыберите статус:",
+                            parse_mode="HTML"
+                        ),
+                        reply_markup=keyboard
+                    )
+                except Exception:
+                    new_msg = await message_or_query.answer_photo(
+                        photo=image_file_id,
+                        caption=preview_text + "\n\nВыберите статус:",
+                        reply_markup=keyboard,
+                        parse_mode="HTML"
+                    )
+                    await state.update_data(step_msg_id=new_msg.message_id)
+            else:
+                new_msg = await message_or_query.answer_photo(
+                    photo=image_file_id,
+                    caption=preview_text + "\n\nВыберите статус:",
+                    reply_markup=keyboard,
+                    parse_mode="HTML"
+                )
+                await state.update_data(step_msg_id=new_msg.message_id)
     else:
         await edit_or_send_message(message_or_query, state, preview_text + "\n\nВыберите статус:", keyboard)
 
     await state.set_state(QuestionState.status)
 
-@questions_router.message(Command('add_questions'))
+@questions_router.message(Command('add_question'))
 async def add_question(message: Message, state: FSMContext):
     if not await check_user_has_role(message, state):
         return
@@ -585,13 +644,6 @@ async def process_photo(message: Message, state: FSMContext):
 
     await state.update_data(image = file_id)
     
-    msg = (
-        "✅ Фото добавлено!\n\n"
-        "Пожалуйста, просмотрите полный превью вашего вопроса ниже "
-        "и выберите, какой статус ему присвоить."
-    )
-    
-    await message.answer(msg)
     await show_preview(message, state)
 
 @questions_router.callback_query(StateFilter(QuestionState.image), F.data == 'photo_cancel')
@@ -627,7 +679,6 @@ async def confirm_cancel_no(callback: CallbackQuery):
 
 @questions_router.callback_query(F.data.in_(['nav_back', 'nav_back_2', 'nav_back_3', 'nav_back_4', 'nav_back_5', 'nav_back_6']))
 async def navigate_back(callback: CallbackQuery, state: FSMContext):
-    """Навигация на предыдущий шаг"""
     await callback.answer()
     
     # Определяем целевой шаг на основе текущего состояния
@@ -690,11 +741,16 @@ async def fill_status(callback: CallbackQuery, state: FSMContext):
     else:
         payload['image_url'] = None
 
-    # Показываем статус загрузки
     loading_msg = (
         f"⏳ Создание вопроса со статусом <b>{status_ru_dict[status]}</b>...\n\n"
         "Пожалуйста, подождите."
     )
+    
+    # Редактируем существующее сообщение (удаляем клавиатуру)
+    try:
+        await callback.message.edit_reply_markup(reply_markup=None)
+    except Exception:
+        pass
     
     await edit_or_send_message(callback, state, loading_msg)
 
@@ -706,11 +762,25 @@ async def fill_status(callback: CallbackQuery, state: FSMContext):
                 headers= {"Authorization": f"Bearer {data['user_token']}"}
             )
             resp.raise_for_status()
+            response_data = await resp.json()
+            question_id = response_data.get('id')
 
         success_msg = (
             f"✅ <b>Вопрос успешно создан!</b>\n\n"
+            f"🆔 <b>ID вопроса:</b> <code>{question_id}</code>\n"
             f"📊 <b>Статус:</b> {status_ru_dict[status]}\n"
             f"📝 <b>Тип:</b> {'С вариантами ответов' if data['question_type'] == 'multiple_choice' else 'Свободный ответ'}\n\n"
+            f"📄 <b>Текст вопроса:</b>\n<code>{data['text']}</code>\n\n"
+        )
+        
+        if data['question_type'] == 'multiple_choice':
+            options_text = "\n".join(f"  {i+1}. {opt}" for i, opt in enumerate(data.get('options', [])))
+            success_msg += (
+                f"🔤 <b>Варианты ответов:</b>\n{options_text}\n\n"
+            )
+        
+        success_msg += (
+            f"✅ <b>Правильный ответ:</b> <code>{data['correct_answer']}</code>\n\n"
             f"Хотите добавить ещё один вопрос? 📚\n"
             f"Напишите /add_question чтобы начать заново."
         )
@@ -720,7 +790,7 @@ async def fill_status(callback: CallbackQuery, state: FSMContext):
     except Exception as e:
         error_msg = (
             f"❌ <b>Ошибка при сохранении вопроса</b>\n\n"
-            f"Детали: `{str(e)}`\n\n"
+            f"Детали: <code>{str(e)}</code>\n\n"
             f"Пожалуйста, попробуйте еще раз или обратитесь к администратору."
         )
         

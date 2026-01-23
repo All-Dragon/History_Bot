@@ -10,7 +10,7 @@ from Bot.utils.lexicon import lexicon
 from Bot.handlers.registration_handler import registration_router
 from Bot.handlers.login_handler import login_router
 from Bot.handlers.create_questions_handler import questions_router
-
+from Bot.handlers.get_questions_handler import get_question_router
 config: Config = load_config()
 
 bot_token = config.bot.token
@@ -24,6 +24,7 @@ dp = Dispatcher(storage = storage)
 dp.include_router(registration_router)
 dp.include_router(login_router)
 dp.include_router(questions_router)
+dp.include_router(get_question_router)
 
 @dp.message(CommandStart())
 async def start_bot(message: Message) -> None:
