@@ -18,17 +18,28 @@ async def get_all_questions(session: AsyncSession = Depends(get_async_session)):
 
 @questions_router.get("/random", response_model=QuestionOut)
 async def get_random_question(
-    session: AsyncSession = Depends(get_async_session)
+    session: AsyncSession = Depends(get_async_session),
+    topic: Optional[str] = None,
+    difficulty: Optional[int] = None
 ):
-    result = await session.execute(
-        select(Questions).where(Questions.status == "published")
-        .order_by(func.random())
-        .limit(1)
-    )
+
+    query = select(Questions).where(Questions.status == 'published')
+
+    if topic:
+        query = query.where(func.lower(Questions.topic) == topic.lower())
+    if difficulty:
+        query = query.where(Questions.difficulty == difficulty)
+
+    query = query.order_by(func.random()).limit(1)
+
+    result = await session.execute(query)
     question = result.scalar()
+
     if not question:
-        raise HTTPException(404, "Нет опубликованных вопросов")
+        raise HTTPException(status_code = status.HTTP_404_NOT_FOUND, detail= 'Нет опубликованных вопросов')
+
     return QuestionOut.model_validate(question)
+
 
 @questions_router.get('/{question_id}', response_model= QuestionOut)
 async def get_question_by_id(question_id: int, session: AsyncSession = Depends(get_async_session)):

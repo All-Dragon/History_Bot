@@ -83,5 +83,4 @@ class QuestionOut(QuestionBase):
 
     model_config = {"from_attributes": True}
 
-    model_config = {"from_attributes": True}
 

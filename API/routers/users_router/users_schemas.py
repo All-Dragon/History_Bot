@@ -51,11 +51,6 @@ class Change_User(BaseModel):
             return name.strip()
         return None
 
-class Stats_User(BaseModel):
-    total_user: int
-    current_user: int
-    deleted_user: int
-
 class User_Out(BaseModel):
     id: int
     telegram_id: int

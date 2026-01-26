@@ -21,54 +21,6 @@ async def get_all_users(session: AsyncSession = Depends(get_async_session),
 async def get_users_info(current_user: Users = Depends(get_current_user)):
     return User_Out.model_validate(current_user)
 
-@users_router.get('/{telegram_id}')
-async def get_user(telegram_id: int,
-                   session: AsyncSession = Depends(get_async_session)):
-    result = await session.scalar(select(Users).where(Users.by_telegram_id(telegram_id)))
-    if result is None:
-        raise HTTPException(status_code= status.HTTP_404_NOT_FOUND, detail= f'Пользователь с таким telegram_id не найден: {telegram_id}')
-    return result
-
-
-
-
-
-
-@users_router.get('/stats', response_model=Stats_User)
-async def get_stats_user(session: AsyncSession = Depends(get_async_session),
-                         current_user: Users = Depends(require_role('Админ'))):
-    try:
-        result = await session.execute(
-            select(
-                func.count(Users.id).label('total_user'),
-
-                func.count(
-                    case(
-                        (Users.deleted_at.is_(None), Users.id)
-                    )
-                ).label('current_user'),
-
-                func.count(
-                    case(
-                        (Users.deleted_at.isnot(None), Users.id)
-                    )
-                ).label('deleted_user')
-            )
-        )
-        stats_row = result.one()
-        stats_data = {
-            'total_user': stats_row.total_user,
-            'current_user': stats_row.current_user,
-            'deleted_user': stats_row.deleted_user
-        }
-        return Stats_User(**stats_data)
-
-    except Exception as e:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to retrieve statistics"
-        )
-
 
 @users_router.post('/create', response_model= ReadUser, status_code= status.HTTP_201_CREATED)
 async def create_new_user(data: CreateUser, session: AsyncSession = Depends(get_async_session)):
@@ -173,3 +125,10 @@ async def restore_user(
     await session.commit()
     return user
 
+@users_router.get('/{telegram_id}')
+async def get_user(telegram_id: int,
+                   session: AsyncSession = Depends(get_async_session)):
+    result = await session.scalar(select(Users).where(Users.by_telegram_id(telegram_id)))
+    if result is None:
+        raise HTTPException(status_code= status.HTTP_404_NOT_FOUND, detail= f'Пользователь с таким telegram_id не найден: {telegram_id}')
+    return result

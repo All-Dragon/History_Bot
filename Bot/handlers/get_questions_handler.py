@@ -77,11 +77,38 @@ class AnswerCD(CallbackData, prefix = 'ans'):
 
 
 @get_question_router.message(Command('random'))
-async def get_random_question(message: Message, state: FSMContext):
-    try:
+async def random_question(message: Message, state: FSMContext):
 
+    args = message.text.split()[1:]
+    params = {}
+
+    DIFFICULTY_MAP = {
+        "1": 1, "easy": 1, "легкий": 1,
+        "2": 2, "simple": 2, "простой": 2,
+        "3": 3, "medium": 3, "middle": 3, "средний": 3,
+        "4": 4, "hard": 4, "сложный": 4,
+        "5": 5, "expert": 5, "эксперт": 5,
+    }
+
+    if args:
+        first = args[0].lower()
+        if first in DIFFICULTY_MAP:
+            params["difficulty"] = DIFFICULTY_MAP[first]
+            if len(args) > 1:
+                params["topic"] = " ".join(args[1:])
+        else:
+            params["topic"] = " ".join(args).title()
+
+
+    try:
         async with aiohttp.ClientSession() as session:
-            async with session.get(f'{config.api.base_url}/question/random') as response:
+            async with session.get(
+                    f'{config.api.base_url}/question/random', params = params) as response:
+
+                if response.status == 404:
+                    await message.answer("Нет вопросов по заданным параметрам 😔")
+                    return
+
                 if response.status != 200:
                     await message.answer('Ошибка сервера, попробуйте позже!')
                     return
@@ -90,7 +117,7 @@ async def get_random_question(message: Message, state: FSMContext):
 
                 if not data:
                     await message.answer('Пока нет доступных вопросов')
-
+                    return
                 await state.update_data(current_question = data)
 
                 q_type = data.get('question_type')
@@ -158,7 +185,7 @@ async def process_multiple_answer(callback: CallbackQuery, state: FSMContext, ca
         return
 
     user_answer = options[chosen_index]
-    correct = questions['correct_answer']
+    correct = questions.get('correct_answer')
 
     q_type = data.get('question_type')
     type_text = "С вариантами ответов" if q_type == 'multiple_choice' else 'Свободный ответ'
@@ -173,7 +200,7 @@ async def process_multiple_answer(callback: CallbackQuery, state: FSMContext, ca
             f'Оригинальный вопрос:\n\n'
             f'{questions['text']}')
 
-    if questions['image_url']:
+    if questions.get('image_url'):
         await callback.message.edit_caption(
             caption= text
         )
@@ -183,6 +210,28 @@ async def process_multiple_answer(callback: CallbackQuery, state: FSMContext, ca
             text = text,
             reply_markup= None
         )
+
+    try:
+        async with aiohttp.ClientSession() as session:
+            async with session.post(
+                f'{config.api.base_url}/answers/create',
+                json = {
+                    'question_id': questions.get('id'),
+                    'answer': user_answer,
+                    'is_correct': user_answer == correct
+                },
+                headers={'Authorization': f'Bearer {data['user_token']}'}
+            ) as resp:
+
+                if resp.status not in (200, 201):
+                    error = await resp.text()
+                    print(f"Ошибка сохранения ответа: {resp.status} - {error}")
+                else:
+                    print("Ответ успешно сохранён в базу")
+    except Exception as e:
+        print(f"Ошибка при отправке ответа на сервер: {e}")
+
+
     await state.clear()
     await callback.message.answer("Следующий вопрос? /random")
 
@@ -233,6 +282,27 @@ async def process_free_answer(message: Message, state: FSMContext):
             )
             await delete_user_message(message)
         await message.answer("Следующий вопрос? /random")
+
+    try:
+        async with aiohttp.ClientSession() as session:
+            async with session.post(
+                f'{config.api.base_url}/answers/create',
+                json = {
+                    'question_id': questions.get('id'),
+                    'answer': user_answer,
+                    'is_correct': user_answer == correct
+                },
+                headers={'Authorization': f'Bearer {data['user_token']}'}
+            ) as resp:
+
+                if resp.status not in (200, 201):
+                    error = await resp.text()
+                    print(f"Ошибка сохранения ответа: {resp.status} - {error}")
+                else:
+                    print("Ответ успешно сохранён в базу")
+    except Exception as e:
+        print(f"Ошибка при отправке ответа на сервер: {e}")
+
 
     await state.clear()
 
