@@ -105,8 +105,6 @@ def generate_url_db():
     url = f'postgresql+asyncpg://{quote(config.db.user, safe='')}:{quote(config.db.password, safe = '')}@{config.db.host}:{config.db.port}/{config.db.name}'
     return url
 
-if __name__ == "__main__":
-    config = load_config()
-    print(config.jwt.ALGORITHM)
+
 
 

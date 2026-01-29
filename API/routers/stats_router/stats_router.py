@@ -88,3 +88,34 @@ async def get_stats_user(session: AsyncSession = Depends(get_async_session),
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to retrieve statistics"
         )
+
+
+@stats_router.get('/questions/{question_id}/answers', response_model= list[AnswerDetail])
+async def get_answers(question_id: int,
+                      session: AsyncSession = Depends(get_async_session),
+                      current_user: Users = Depends(require_role('Преподаватель', 'Админ'))):
+
+    try:
+        question = await session.get(Questions, question_id)
+        if not question or question.created_by != current_user.id:
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail= 'Нет доступа к этому вопросу')
+
+        result = await session.execute(
+            select(Answers)
+            .where(Answers.question_id == question_id)
+            .options(joinedload(Answers.user))
+            .order_by(Answers.created_at.desc())
+        )
+
+        answers = result.scalars().all()
+        return [
+            AnswerDetail(
+                username=answer.user.username if answer.user else "Аноним",
+                user_answer=answer.answer,
+                is_correct=answer.is_correct,
+                answered_at=answer.created_at
+            )
+            for answer in answers
+        ]
+    except Exception as e:
+        print(str(e))

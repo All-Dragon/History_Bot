@@ -40,6 +40,17 @@ async def create_new_user(data: CreateUser, session: AsyncSession = Depends(get_
     await session.refresh(new_user)
     return new_user
 
+
+@users_router.put('/me/name', response_model= User_Out)
+async def change_name(data: ChangeName,
+                      session: AsyncSession = Depends(get_async_session),
+                      current_user: Users = Depends(get_current_user)):
+    current_user.username = data.name
+    await session.commit()
+    await session.refresh(current_user)
+
+    return current_user
+
 @users_router.put('/change/{telegram_id}', response_model= ReadUser)
 async def change(id: int,
                  data: Change_User,
@@ -58,6 +69,9 @@ async def change(id: int,
     await session.commit()
     await session.refresh(user)
     return user
+
+
+
 
 @users_router.delete('/hard_del/{telegram_id}', status_code= status.HTTP_204_NO_CONTENT)
 async def hard_delete_user(

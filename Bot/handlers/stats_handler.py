@@ -31,26 +31,28 @@ async def get_all_users_states(message: Message, state: FSMContext):
                 config.api.base_url}/stats/admin/overview',
                 headers={"Authorization": f"Bearer {data['user_token']}"}
             ) as resp:
-                if resp != 200:
-                    await message.answer('Ошибка сервера, попробуйте позже')
+
+                if resp.status == 401:
+                    await message.answer("Сессия истекла. Пожалуйста, войдите заново: /login")
+                    await state.clear()
+                    return
+
+                if resp.status != 200:
+                    await message.answer('Ошибка сервера, попробуйте позже!')
                     return
 
                 data = await resp.json()
 
-                text = (f'Статистика по использованию бота:\n\n'
-                        f'Всего пользователей: {data.get('total_user', 'Нет данных')}\n'
-                        f'Активных пользователей: {data.get('current_user', 'Нет данных')}\n'
-                        f'Пользователей удаливших аккаунт: {data.get('deleted_user', 'Нет данных')}')
+                text = (f"Статистика по использованию бота:\n\n"
+                        f"Всего пользователей: {data.get('total_user', 'Нет данных')}\n"
+                        f"Активных пользователей: {data.get('current_user', 'Нет данных')}\n"
+                        f"Пользователей удаливших аккаунт: {data.get('deleted_user', 'Нет данных')}")
 
                 await state.clear()
                 await message.answer(text)
 
     except Exception as e:
-        error_msg = (
-            f"❌ <b>Ошибка при получении данных</b>\n\n"
-            f"Детали: <code>{str(e)}</code>\n\n"
-            f"Пожалуйста, попробуйте еще раз или обратитесь к администратору."
-        )
+        error_msg = ('Ошибка сервера, пожалуйста, попробуйте позже')
 
         await state.clear()
         await message.answer(error_msg)
@@ -66,26 +68,28 @@ async def get_my_states(message: Message, state: FSMContext):
                     f'{config.api.base_url}/stats/my_stats',
                     headers={"Authorization": f"Bearer {data['user_token']}"}
             ) as resp:
-                if resp != 200:
-                    await message.answer('Ошибка сервера, попробуйте позже')
+
+                if resp.status == 401:
+                    await message.answer("Сессия истекла. Пожалуйста, войдите заново: /login")
+                    await state.clear()
+                    return
+
+                if resp.status != 200:
+                    await message.answer('Ошибка сервера, попробуйте позже!')
                     return
 
                 data = await resp.json()
 
-                text = (f'Статистика по ответам на вопросы:\n\n'
-                        f'Всего вопросов решено: {data.get('total_question', 'Нет данных')}\n'
-                        f'Правильных ответов дано: {data.get('right_answer', 'Нет данных')}\n'
-                        f'Доля правильных ответов: {data.get('right_answer_percentage', 'Нет данных')}')
+                text = (f"Статистика по ответам на вопросы:\n\n"
+                        f"Всего вопросов решено: {data.get('total_question', 'Нет данных')}\n"
+                        f"Правильных ответов дано: {data.get('right_answer', 'Нет данных')}\n"
+                        f"Доля правильных ответов: {data.get('right_answer_percentage', 'Нет данных')}")
 
                 await state.clear()
                 await message.answer(text)
 
     except Exception as e:
-        error_msg = (
-            f"❌ <b>Ошибка при получении данных</b>\n\n"
-            f"Детали: <code>{str(e)}</code>\n\n"
-            f"Пожалуйста, попробуйте еще раз или обратитесь к администратору."
-        )
+        error_msg = ('Ошибка сервера, пожалуйста, попробуйте позже')
 
         await state.clear()
         await message.answer(error_msg)

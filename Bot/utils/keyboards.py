@@ -2,6 +2,21 @@ from aiogram.utils.keyboard import InlineKeyboardBuilder, InlineKeyboardButton, 
 from typing import Any
 
 
+def get_login_markup() -> InlineKeyboardBuilder:
+    kb_builder = InlineKeyboardBuilder()
+    bt1 = InlineKeyboardButton(text = 'Да', callback_data= 'login_yes')
+    bt2 = InlineKeyboardButton(text = 'Нет', callback_data = 'login_no')
+    markup = kb_builder.add(bt1, bt2).adjust(1, 1).as_markup()
+    return markup
+
+
+def get_change_username_markup() -> InlineKeyboardBuilder:
+    kb_builder = InlineKeyboardBuilder()
+    bt1 = InlineKeyboardButton(text = 'Да', callback_data= 'change_name_yes')
+    bt2 = InlineKeyboardButton(text = 'Нет', callback_data= 'change_name_no')
+    markup = kb_builder.add(bt1, bt2).adjust(1).as_markup()
+    return markup
+
 def get_progress_text(current_step: int, max_steps: int = 7) -> str:
     return f"📍 Шаг {current_step}/{max_steps}"
 

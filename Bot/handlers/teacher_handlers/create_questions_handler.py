@@ -105,7 +105,7 @@ async def edit_or_send_message(
             await state.update_data(step_msg_id=msg.message_id)
             return msg
     except Exception as e:
-        print(f"Ошибка редактирования: {e}")
+        print('Ошибка сервера, пожалуйста, попробуйте позже')
         if isinstance(message_or_query, Message):
             msg = await message_or_query.answer(text, reply_markup=reply_markup, parse_mode="HTML")
         else:
@@ -788,11 +788,7 @@ async def fill_status(callback: CallbackQuery, state: FSMContext):
         await edit_or_send_message(callback, state, success_msg)
 
     except Exception as e:
-        error_msg = (
-            f"❌ <b>Ошибка при сохранении вопроса</b>\n\n"
-            f"Детали: <code>{str(e)}</code>\n\n"
-            f"Пожалуйста, попробуйте еще раз или обратитесь к администратору."
-        )
+        error_msg = ('Ошибка сервера, пожалуйста, попробуйте позже')
         
         await edit_or_send_message(callback, state, error_msg)
 

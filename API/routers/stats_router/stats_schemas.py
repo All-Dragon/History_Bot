@@ -21,3 +21,12 @@ class Stats_User(BaseModel):
     total_user: int
     current_user: int
     deleted_user: int
+
+
+class AnswerDetail(BaseModel):
+    username: str = Field(..., description= 'Никнейм пользователя, давшего ответ')
+    user_answer: str = Field(..., description= 'Ответ пользователя')
+    is_correct: bool = Field(..., description= 'Верно или нет')
+    answered_at: datetime = Field(..., description= 'Время и дата ответа')
+
+    model_config = {"from_attributes": True}

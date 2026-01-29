@@ -31,8 +31,6 @@ async def delete_user_message(message: Message):
     except Exception:
         pass
 
-
-
 def get_markup_options(options: list[Any] = []):
     kb_builder = InlineKeyboardBuilder()
 
@@ -56,7 +54,6 @@ def get_markup_options(options: list[Any] = []):
 
     return kb_builder.as_markup()
 
-
 def difficult_level(level: int) -> str:
     difficulty_names = {
         1: "🟢 Легкий",
@@ -76,34 +73,11 @@ class AnswerCD(CallbackData, prefix = 'ans'):
     chosen: int # Индекс выбранного варианта
 
 
-@get_question_router.message(Command('random'))
-async def random_question(message: Message, state: FSMContext):
-
-    args = message.text.split()[1:]
-    params = {}
-
-    DIFFICULTY_MAP = {
-        "1": 1, "easy": 1, "легкий": 1,
-        "2": 2, "simple": 2, "простой": 2,
-        "3": 3, "medium": 3, "middle": 3, "средний": 3,
-        "4": 4, "hard": 4, "сложный": 4,
-        "5": 5, "expert": 5, "эксперт": 5,
-    }
-
-    if args:
-        first = args[0].lower()
-        if first in DIFFICULTY_MAP:
-            params["difficulty"] = DIFFICULTY_MAP[first]
-            if len(args) > 1:
-                params["topic"] = " ".join(args[1:])
-        else:
-            params["topic"] = " ".join(args).title()
-
-
+async def get_connect_API(link: str, params: dict, message: Message, state: FSMContext):
     try:
         async with aiohttp.ClientSession() as session:
             async with session.get(
-                    f'{config.api.base_url}/question/random', params = params) as response:
+                    link, params = params) as response:
 
                 if response.status == 404:
                     await message.answer("Нет вопросов по заданным параметрам 😔")
@@ -165,10 +139,30 @@ async def random_question(message: Message, state: FSMContext):
                         await state.update_data(question_msg_id = sent_msg.message_id)
                         await state.set_state(AnswerState.answer_waiting)
     except Exception as e:
-        await message.answer(str(e))
+        await message.answer('Ошибка сервера, пожалуйста, попробуйте позже')
 
-@get_question_router.callback_query(AnswerCD.filter())
-async def process_multiple_answer(callback: CallbackQuery, state: FSMContext, callback_data: AnswerCD):
+async def save_result(question_id, answer, is_correct, token):
+    try:
+        async with aiohttp.ClientSession() as session:
+            async with session.post(
+                    f'{config.api.base_url}/answers/create',
+                    json={
+                        'question_id': question_id,
+                        'answer': answer,
+                        'is_correct': is_correct
+                    },
+                    headers={'Authorization': f'Bearer {token}'}
+            ) as resp:
+
+                if resp.status not in (200, 201):
+                    error = await resp.text()
+                    print(f"Ошибка сохранения ответа: {resp.status} - {error}")
+                else:
+                    print("Ответ успешно сохранён в базу")
+    except Exception as e:
+        print(f"Ошибка при отправке ответа на сервер")
+
+async def multiple_answer(callback: CallbackQuery, state: FSMContext, callback_data: AnswerCD):
     await callback.answer()
 
     data = await state.get_data()
@@ -202,41 +196,25 @@ async def process_multiple_answer(callback: CallbackQuery, state: FSMContext, ca
 
     if questions.get('image_url'):
         await callback.message.edit_caption(
-            caption= text
+            caption=text
         )
 
     else:
         await callback.message.edit_text(
-            text = text,
-            reply_markup= None
+            text=text,
+            reply_markup=None
         )
 
-    try:
-        async with aiohttp.ClientSession() as session:
-            async with session.post(
-                f'{config.api.base_url}/answers/create',
-                json = {
-                    'question_id': questions.get('id'),
-                    'answer': user_answer,
-                    'is_correct': user_answer == correct
-                },
-                headers={'Authorization': f'Bearer {data['user_token']}'}
-            ) as resp:
-
-                if resp.status not in (200, 201):
-                    error = await resp.text()
-                    print(f"Ошибка сохранения ответа: {resp.status} - {error}")
-                else:
-                    print("Ответ успешно сохранён в базу")
-    except Exception as e:
-        print(f"Ошибка при отправке ответа на сервер: {e}")
-
+    await save_result(
+        question_id= questions.get('id'),
+        answer= user_answer,
+        is_correct= user_answer == correct,
+        token= data.get('user_token')
+    )
 
     await state.clear()
-    await callback.message.answer("Следующий вопрос? /random")
 
-@get_question_router.message(StateFilter(AnswerState.answer_waiting))
-async def process_free_answer(message: Message, state: FSMContext):
+async def free_text(message: Message, state: FSMContext):
     data = await state.get_data()
     questions = data.get('current_question')
     if not questions:
@@ -266,47 +244,84 @@ async def process_free_answer(message: Message, state: FSMContext):
     if question_msg_id:
         if questions['image_url']:
             await message.bot.edit_message_caption(
-                chat_id = message.chat.id,
-                message_id= question_msg_id,
-                caption = text,
-                reply_markup= None
+                chat_id=message.chat.id,
+                message_id=question_msg_id,
+                caption=text,
+                reply_markup=None
             )
             await delete_user_message(message)
 
         else:
             await message.bot.edit_message_text(
-                chat_id= message.chat.id,
-                message_id= question_msg_id,
-                text = text,
-                reply_markup= None
+                chat_id=message.chat.id,
+                message_id=question_msg_id,
+                text=text,
+                reply_markup=None
             )
             await delete_user_message(message)
-        await message.answer("Следующий вопрос? /random")
 
-    try:
-        async with aiohttp.ClientSession() as session:
-            async with session.post(
-                f'{config.api.base_url}/answers/create',
-                json = {
-                    'question_id': questions.get('id'),
-                    'answer': user_answer,
-                    'is_correct': user_answer == correct
-                },
-                headers={'Authorization': f'Bearer {data['user_token']}'}
-            ) as resp:
-
-                if resp.status not in (200, 201):
-                    error = await resp.text()
-                    print(f"Ошибка сохранения ответа: {resp.status} - {error}")
-                else:
-                    print("Ответ успешно сохранён в базу")
-    except Exception as e:
-        print(f"Ошибка при отправке ответа на сервер: {e}")
-
+    await save_result(
+        question_id=questions.get('id'),
+        answer=user_answer,
+        is_correct=user_answer.lower() == correct.lower(),
+        token=data.get('user_token')
+    )
 
     await state.clear()
 
-@get_question_router.callback_query(StateFilter(AnswerState.answer_waiting) ,F.data == 'cancel_question')
+@get_question_router.message(Command('random'))
+async def random_question(message: Message, state: FSMContext):
+
+    args = message.text.split()[1:]
+    params = {}
+
+    DIFFICULTY_MAP = {
+        "1": 1, "easy": 1, "легкий": 1,
+        "2": 2, "simple": 2, "простой": 2,
+        "3": 3, "medium": 3, "middle": 3, "средний": 3,
+        "4": 4, "hard": 4, "сложный": 4,
+        "5": 5, "expert": 5, "эксперт": 5,
+    }
+
+    if args:
+        first = args[0].lower()
+        if first in DIFFICULTY_MAP:
+            params["difficulty"] = DIFFICULTY_MAP[first]
+            if len(args) > 1:
+                params["topic"] = " ".join(args[1:])
+        else:
+            params["topic"] = " ".join(args).title()
+
+
+    await get_connect_API(f'{config.api.base_url}/question/random', params = params, message= message, state = state)
+
+@get_question_router.message(Command('question'))
+async def get_question_by_id(message: Message, state: FSMContext):
+    args = message.text.split()[1:]
+
+    if not args or not args[0].isdigit():
+        await message.answer("Использование: /question <id>")
+        return
+
+    question_id = int(args[0])
+    await get_connect_API(f'{config.api.base_url}/question/{question_id}', message=message, state=state)
+
+
+@get_question_router.callback_query(AnswerCD.filter())
+async def process_multiple_answer(callback: CallbackQuery, state: FSMContext, callback_data: AnswerCD):
+    await multiple_answer(
+                          callback = callback,
+                          state = state,
+                          callback_data= callback_data
+    )
+
+
+@get_question_router.message(StateFilter(AnswerState.answer_waiting), ~F.text.startswith("/"))
+async def process_free_answer(message: Message, state: FSMContext):
+    await free_text(message = message, state = state)
+
+
+@get_question_router.callback_query(StateFilter(AnswerState.answer_waiting), F.data == 'cancel_question')
 async def cancel_questions(callback: CallbackQuery, state: FSMContext):
     await callback.answer()
     await state.clear()
@@ -319,4 +334,6 @@ async def cancel_questions(callback: CallbackQuery, state: FSMContext):
     await callback.message.answer(
         "Вопрос отменён.\nНовый вопрос: /random"
     )
+
+
 

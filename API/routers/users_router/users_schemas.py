@@ -54,7 +54,11 @@ class Change_User(BaseModel):
 class User_Out(BaseModel):
     id: int
     telegram_id: int
+    username: str
     role: str
     is_banned: bool
 
     model_config = {"from_attributes": True}
+
+class ChangeName(BaseModel):
+    name: str

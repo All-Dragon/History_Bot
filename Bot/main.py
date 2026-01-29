@@ -1,17 +1,17 @@
 from aiogram import Dispatcher
 from aiogram.filters import CommandStart, Command
-from aiogram.fsm.state import State, StatesGroup
 from aiogram.types import (Message)
 import asyncio
 from aiogram.fsm.storage.memory import MemoryStorage
 from aiogram.client.bot import Bot
 from config_app import Config, load_config
 from Bot.utils.lexicon import lexicon
-from Bot.handlers.registration_handler import registration_router
-from Bot.handlers.login_handler import login_router
-from Bot.handlers.create_questions_handler import questions_router
+from Bot.handlers.authentication_handlers.registration_handler import registration_router
+from Bot.handlers.authentication_handlers.login_handler import login_router
+from Bot.handlers.teacher_handlers.create_questions_handler import questions_router
 from Bot.handlers.get_questions_handler import get_question_router
 from Bot.handlers.stats_handler import stats_router
+from Bot.handlers.teacher_handlers.teacher_func_handler import teacher_func_router
 
 config: Config = load_config()
 
@@ -27,6 +27,8 @@ dp.include_router(login_router)
 dp.include_router(questions_router)
 dp.include_router(get_question_router)
 dp.include_router(stats_router)
+dp.include_router(teacher_func_router)
+
 @dp.message(CommandStart())
 async def start_bot(message: Message) -> None:
     await message.answer(f'Привет, {message.from_user.username}! Добро пожаловать в History Bot! \nДля получения помощи используй команду /help')

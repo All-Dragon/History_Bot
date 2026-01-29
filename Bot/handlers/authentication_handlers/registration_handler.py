@@ -39,7 +39,7 @@ class RegistrationBlockMiddleware(BaseMiddleware):
                 ) as response:
 
                     if response.status == 200:
-                        await event.answer('⚠️ Вы уже зарегистрированы!\nДля получения доступа к функциям ипользуйте /login!')
+                        await event.answer('⚠️ Вы уже зарегистрированы!\nДля получения доступа к функциям ипользуйте /login!\nДля просмотра своих данных используйте /profile!')
                         return  # ❌ дальше не идём
 
                     if response.status == 404:
@@ -52,11 +52,11 @@ class RegistrationBlockMiddleware(BaseMiddleware):
                     return
 
         except aiohttp.ClientConnectorError:
-            await event.answer('⚠️ Сервер недоступен')
+            await event.answer('Ошибка сервера, пожалуйста, попробуйте позже')
             return
 
         except Exception as e:
-            await event.answer(f'❌ Ошибка: {str(e)[:100]}')
+            await event.answer('Ошибка сервера, пожалуйста, попробуйте позже')
             return
 
 
@@ -120,7 +120,7 @@ async def get_role(callback: CallbackQuery, state: FSMContext) -> None:
             "⚠️ Ошибка подключения: Сервер API недоступен. Проверьте, запущен ли FastAPI."
         )
     except Exception as e:
-        await callback.message.answer(f"❌ Произошла непредвиденная ошибка: {str(e)[:100]}")
+        await callback.message.answer('Ошибка сервера, пожалуйста, попробуйте позже')
 
 
 
