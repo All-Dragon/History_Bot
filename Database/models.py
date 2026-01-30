@@ -5,7 +5,7 @@ from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, Session, rela
 from sqlalchemy.dialects.postgresql import ENUM
 from sqlalchemy.types import DateTime, JSON
 from datetime import datetime
-from typing import Optional
+from typing import Optional, List
 from sqlalchemy.dialects.postgresql import ENUM as PG_ENUM
 from sqlalchemy.ext.mutable import MutableList
 
@@ -54,6 +54,8 @@ class Users(Base):
     created_groups: Mapped[list['Groups']] = relationship(
         'Groups', back_populates='teacher', foreign_keys='Groups.teacher_id'
     )
+    created_tests: Mapped[List["Test"]] = relationship("Test", back_populates="creator")
+    test_attempts: Mapped[List["TestAttempt"]] = relationship("TestAttempt", back_populates="user")
 
     @classmethod
     def active(cls):
@@ -101,6 +103,7 @@ class Questions(Base):
 
     author: Mapped['Users'] = relationship(back_populates= 'questions')
     answers: Mapped['Answers'] = relationship(back_populates= 'question')
+    test_questions: Mapped[List["TestQuestion"]] = relationship("TestQuestion", back_populates="question")
 
 class Answers(Base):
     __tablename__ = 'answers'
@@ -147,3 +150,203 @@ class Ban(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
     user: Mapped['Users'] = relationship(back_populates= 'bans')
+
+
+
+test_status_enum = PG_ENUM(
+    "draft",
+    "published",
+    "archived",
+    name="test_status"
+)
+
+attempt_status_enum = PG_ENUM(
+    "in_progress",
+    "finished",
+    "cancelled",
+    name="attempt_status"
+)
+
+
+
+class Test(Base):
+    __tablename__ = "tests"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    title: Mapped[str] = mapped_column(String(200), nullable=False)
+    description: Mapped[Optional[str]] = mapped_column(String)
+
+    creator_id: Mapped[int] = mapped_column(
+        ForeignKey("users.id"),
+        nullable=False,
+        index=True
+    )
+
+    status: Mapped[str] = mapped_column(
+        test_status_enum,
+        nullable=False,
+        server_default="draft",
+        index=True
+    )
+
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        server_default=func.now()
+    )
+
+    creator: Mapped["Users"] = relationship(
+        back_populates="created_tests"
+    )
+
+    questions: Mapped[List["TestQuestion"]] = relationship(
+        back_populates="test",
+        cascade="all, delete-orphan",
+        order_by="TestQuestion.order"
+    )
+
+    attempts: Mapped[List["TestAttempt"]] = relationship(
+        back_populates="test",
+        cascade="all, delete-orphan"
+    )
+
+
+
+
+
+from sqlalchemy import UniqueConstraint
+
+class TestQuestion(Base):
+    __tablename__ = "test_questions"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+
+    test_id: Mapped[int] = mapped_column(
+        ForeignKey("tests.id"),
+        nullable=False,
+        index=True
+    )
+
+    question_id: Mapped[int] = mapped_column(
+        ForeignKey("questions.id"),
+        nullable=False,
+        index=True
+    )
+
+    order: Mapped[int] = mapped_column(Integer, nullable=False)
+
+    points: Mapped[int] = mapped_column(
+        Integer,
+        nullable=False,
+        server_default="1"
+    )
+
+    test: Mapped["Test"] = relationship(back_populates="questions")
+    question: Mapped["Questions"] = relationship(
+        back_populates="test_questions"
+    )
+
+    __table_args__ = (
+        UniqueConstraint(
+            "test_id",
+            "question_id",
+            name="uq_test_question"
+        ),
+    )
+
+
+from sqlalchemy import Index
+
+class TestAttempt(Base):
+    __tablename__ = "test_attempts"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+
+    test_id: Mapped[int] = mapped_column(
+        ForeignKey("tests.id"),
+        nullable=False,
+        index=True
+    )
+
+    user_id: Mapped[int] = mapped_column(
+        ForeignKey("users.id"),
+        nullable=False,
+        index=True
+    )
+
+    started_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        server_default=func.now()
+    )
+
+    finished_at: Mapped[Optional[datetime]] = mapped_column(
+        DateTime(timezone=True)
+    )
+
+    score: Mapped[Optional[int]] = mapped_column(Integer)
+
+    max_score: Mapped[int] = mapped_column(
+        Integer,
+        nullable=False,
+        server_default="0"
+    )
+
+    status: Mapped[str] = mapped_column(
+        attempt_status_enum,
+        nullable=False,
+        server_default="in_progress",
+        index=True
+    )
+
+    test: Mapped["Test"] = relationship(back_populates="attempts")
+    user: Mapped["Users"] = relationship(back_populates="test_attempts")
+
+    answers: Mapped[List["TestAnswer"]] = relationship(
+        back_populates="attempt",
+        cascade="all, delete-orphan"
+    )
+
+    __table_args__ = (
+        Index(
+            "ix_test_attempt_user_test",
+            "user_id",
+            "test_id"
+        ),
+    )
+
+
+class TestAnswer(Base):
+    __tablename__ = "test_answers"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+
+    attempt_id: Mapped[int] = mapped_column(
+        ForeignKey("test_attempts.id"),
+        nullable=False,
+        index=True
+    )
+
+    test_question_id: Mapped[int] = mapped_column(
+        ForeignKey("test_questions.id"),
+        nullable=False,
+        index=True
+    )
+
+    user_answer: Mapped[str] = mapped_column(String, nullable=False)
+
+    is_correct: Mapped[bool] = mapped_column(Boolean, nullable=False)
+
+    answered_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        server_default=func.now()
+    )
+
+    attempt: Mapped["TestAttempt"] = relationship(back_populates="answers")
+    test_question: Mapped["TestQuestion"] = relationship()
+
+    __table_args__ = (
+        UniqueConstraint(
+            "attempt_id",
+            "test_question_id",
+            name="uq_attempt_question"
+        ),
+    )

@@ -11,10 +11,23 @@ questions_router = APIRouter(
 
 
 @questions_router.get('', response_model=List[QuestionOut])
-async def get_all_questions(session: AsyncSession = Depends(get_async_session)):
+async def get_all_questions(session: AsyncSession = Depends(get_async_session),
+                            current_user: Users = Depends(require_role('Преподаватель', 'Админ'))):
     result = await session.scalars(select(Questions))
     result = result.all()
     return result
+
+@questions_router.get('/my', response_model= List[QuestionOut])
+async def get_my_questions(session: AsyncSession = Depends(get_async_session),
+                           current_user: Users = Depends(require_role('Преподаватель', 'Админ'))):
+
+    result = await session.scalars(select(Questions).where(Questions.created_by == current_user.id))
+    result = result.all()
+    if result is None:
+        raise HTTPException(status_code= status.HTTP_404_NOT_FOUND, detail= 'Вопросы не найдены, проверьте создавали ли вы их.')
+
+    return result
+
 
 @questions_router.get("/random", response_model=QuestionOut)
 async def get_random_question(

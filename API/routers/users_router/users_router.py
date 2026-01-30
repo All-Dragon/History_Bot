@@ -70,9 +70,6 @@ async def change(id: int,
     await session.refresh(user)
     return user
 
-
-
-
 @users_router.delete('/hard_del/{telegram_id}', status_code= status.HTTP_204_NO_CONTENT)
 async def hard_delete_user(
         telegram_id: int,

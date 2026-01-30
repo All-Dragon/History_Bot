@@ -119,3 +119,4 @@ async def get_answers(question_id: int,
         ]
     except Exception as e:
         print(str(e))
+        return []

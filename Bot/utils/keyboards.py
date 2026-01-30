@@ -1,5 +1,6 @@
 from aiogram.utils.keyboard import InlineKeyboardBuilder, InlineKeyboardButton, InlineKeyboardMarkup
 from typing import Any
+from math import ceil
 
 
 def get_login_markup() -> InlineKeyboardBuilder:
@@ -150,6 +151,5 @@ def get_markup_cancel_confirm() -> InlineKeyboardMarkup:
     no_btn = InlineKeyboardButton(text="❌ Нет, продолжить", callback_data="confirm_cancel_no")
     kb_builder.add(yes_btn, no_btn).adjust(1)
     return kb_builder.as_markup()
-
 
 
