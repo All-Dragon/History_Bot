@@ -21,7 +21,9 @@ class CreateUser(UsersBase):
     is_banned: bool = Field(default= False, description= 'User is banned or not')
 
 class ReadUser(UsersBase):
+    role: str = Field(..., description="User role", examples= ['Ученик'])
     id: int = Field(..., description="User ID")
+    is_banned: bool = Field(default=False, description='User is banned or not')
     created_at: datetime = Field(..., description="Creation timestamp")
     updated_at: Optional[datetime] = Field(default= None, description="Last update timestamp")
     deleted_at: Optional[datetime] = Field(default= None, description= 'Active user or not')
