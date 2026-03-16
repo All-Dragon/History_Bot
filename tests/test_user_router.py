@@ -75,3 +75,23 @@ async def test_restore_user(client, telegram_id, username, role, is_banned):
 
     assert response_restore.status_code == 200
     assert response_restore.json().get('deleted_at') is None
+
+
+async def test_create_user_duplicate(client):
+    response = await client.post('/users/create',
+                                 json= {'telegram_id': 200,
+                                        'username': "Jin",
+                                        'role': "Ученик",
+                                        'is_banned': False})
+
+    response = await client.post('/users/create',
+                                 json= {'telegram_id': 200,
+                                        'username': "Jin",
+                                        'role': "Ученик",
+                                        'is_banned': False})
+    assert response.status_code == 400
+    assert response.json().get('detail') == 'Пользователь уже существует!'
+
+async def test_get_user_info_no_token(client):
+    response = await client.get('/users/me')
+    assert response.status_code == 401

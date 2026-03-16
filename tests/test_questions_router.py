@@ -83,3 +83,47 @@ async def test_get_question_by_id(client, created_question):
     question_id = created_question.get('id', 1)
     response = await client.get(f'/question/{question_id}')
     assert response.status_code == 200
+
+async def test_free_answer_with_options(client):
+    response_create = await client.post('/users/create',
+                                        json={'telegram_id': 45, 'username': 'Pole', 'role': 'Преподаватель',
+                                              'is_banned': False})
+    token_response = await client.post('/auth/login', json={'telegram_id': 45})
+    token = token_response.json()['access_token']
+
+    actual_user_id = response_create.json()['id']
+
+    response = await client.post('/question/new',
+                           json = {'text': 'negativvvvvvv',
+                                   'options': ['negativ', 'позитивный'],
+                                   'correct_answer': 'negativ',
+                                   'topic': 'topic',
+                                   'difficulty': 1,
+                                   'created_by': actual_user_id,
+                                   'image_url': None,
+                                   'status': 'published',
+                                   'question_type': 'free_text'},
+                                 headers={'Authorization': f"Bearer {token}"})
+    assert response.status_code == 422
+
+async def test_multiple_choice_with_no_options(client):
+    response_create = await client.post('/users/create',
+                                        json={'telegram_id': 46, 'username': 'Paule', 'role': 'Преподаватель',
+                                              'is_banned': False})
+    token_response = await client.post('/auth/login', json={'telegram_id': 46})
+    token = token_response.json()['access_token']
+
+    actual_user_id = response_create.json()['id']
+
+    response = await client.post('/question/new',
+                           json = {'text': 'negativvvvvvv',
+                                   'options': None,
+                                   'correct_answer': 'negativ',
+                                   'topic': 'topic',
+                                   'difficulty': 1,
+                                   'created_by': actual_user_id,
+                                   'image_url': None,
+                                   'status': 'published',
+                                   'question_type': 'multiple_choice'},
+                                 headers={'Authorization': f"Bearer {token}"})
+    assert response.status_code == 422

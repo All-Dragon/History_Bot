@@ -39,10 +39,14 @@ async def get_answer_my_stats(session: AsyncSession = Depends(get_async_session)
             )
         )
 
-        stats_row = result.one()
+        stats_row = result.one_or_none()
+        
+        if stats_row is None:
+            return AnswersStats(total_question=0, right_answer=0)
+        
         stats_data = {
-            'total_question': stats_row.total_question,
-            'right_answer': stats_row.right_answer
+            'total_question': stats_row.total_question or 0,
+            'right_answer': stats_row.right_answer or 0
         }
 
         return AnswersStats(**stats_data)
@@ -95,11 +99,11 @@ async def get_answers(question_id: int,
                       session: AsyncSession = Depends(get_async_session),
                       current_user: Users = Depends(require_role('Преподаватель', 'Админ'))):
 
-    try:
-        question = await session.get(Questions, question_id)
-        if not question or question.created_by != current_user.id:
-            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail= 'Нет доступа к этому вопросу')
+    question = await session.get(Questions, question_id)
+    if not question or question.created_by != current_user.id:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail= 'Нет доступа к этому вопросу')
 
+    try:
         result = await session.execute(
             select(Answers)
             .where(Answers.question_id == question_id)
@@ -118,5 +122,7 @@ async def get_answers(question_id: int,
             for answer in answers
         ]
     except Exception as e:
-        print(str(e))
-        return []
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to retrieve answers"
+        )
