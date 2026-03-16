@@ -38,7 +38,7 @@ async def create_new_user(data: CreateUser, session: AsyncSession = Depends(get_
     session.add(new_user)
     await session.commit()
     await session.refresh(new_user)
-    return new_user
+    return ReadUser.model_validate(new_user)
 
 
 @users_router.put('/me/name', response_model= User_Out)
@@ -49,7 +49,7 @@ async def change_name(data: ChangeName,
     await session.commit()
     await session.refresh(current_user)
 
-    return current_user
+    return User_Out.model_validate(current_user)
 
 @users_router.put('/change/{telegram_id}', response_model= ReadUser)
 async def change(id: int,
@@ -68,7 +68,7 @@ async def change(id: int,
 
     await session.commit()
     await session.refresh(user)
-    return user
+    return ReadUser.model_validate(user)
 
 @users_router.delete('/hard_del/{telegram_id}', status_code= status.HTTP_204_NO_CONTENT)
 async def hard_delete_user(
@@ -89,10 +89,13 @@ async def hard_delete_user(
 
     return
 
-@users_router.delete('/soft_del/{telegram_id}', status_code = status.HTTP_204_NO_CONTENT)
+@users_router.delete('/soft_del',
+                     status_code = status.HTTP_204_NO_CONTENT,
+                     )
 async def soft_delete_user(
-        telegram_id: int,
+        current_user = Depends(get_current_user),
         session: AsyncSession = Depends(get_async_session)):
+    telegram_id = current_user.telegram_id
     result = await session.execute(
         update(Users)
         .where(
@@ -108,33 +111,31 @@ async def soft_delete_user(
             detail="User not found or already deleted"
         )
     await session.commit()
-    return
-
-@users_router.put('/restore_user/{telegram_id}', response_model= ReadUser)
+    return {'message': 'Вы удалили аккаунт! Для его восстановления используйте'}
+@users_router.put('/restore_user', response_model= ReadUser)
 async def restore_user(
-        telegram_id: int,
         session: AsyncSession = Depends(get_async_session),
-        current_user: Users = Depends(require_role('Преподаватель', 'Админ'))):
-    result = await session.execute(
-        update(Users)
-        .where(
+        current_user: Users = Depends(get_current_user)):
+    telegram_id = current_user.telegram_id
+
+    user = await session.scalar(
+        select(Users).where(
             Users.by_telegram_id(telegram_id),
             Users.non_active()
         )
-        .values(deleted_at=None)
-        .returning(Users)
     )
-
-    user = result.scalar_one_or_none()
-
+    
     if user is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="User not found or not deleted"
         )
 
+    user.deleted_at = None
     await session.commit()
-    return user
+    await session.refresh(user)
+    
+    return ReadUser.model_validate(user)
 
 @users_router.get('/{telegram_id}')
 async def get_user(telegram_id: int,
