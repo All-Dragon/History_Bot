@@ -1,4 +1,4 @@
-from sqlalchemy import create_engine, String, Integer, ForeignKey, text, Boolean, select, or_, desc, asc, func, Table, \
+from sqlalchemy import create_engine, String, Integer, BigInteger, ForeignKey, text, Boolean, select, or_, desc, asc, func, Table, \
     Column, case, update
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, Session, relationship, selectinload, joinedload, \
     sessionmaker
@@ -22,7 +22,7 @@ class Users(Base):
     __tablename__ = 'users'
 
     id: Mapped[int] = mapped_column(Integer, primary_key= True)
-    telegram_id: Mapped[int] = mapped_column(Integer, unique= True, index = True)
+    telegram_id: Mapped[int] = mapped_column(BigInteger, unique= True, index = True)
     username: Mapped[Optional[str]] = mapped_column(String, nullable= True)
 
     role: Mapped[str] = mapped_column(

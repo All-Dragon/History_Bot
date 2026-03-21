@@ -1,3 +1,5 @@
+import logging
+
 from fastapi import FastAPI
 from fastapi.responses import HTMLResponse
 from API.routers.users_router.users_router import users_router
@@ -6,12 +8,16 @@ from API.routers.bans_router.bans_router import bans_router
 from API.routers.auth import authorization_router
 from API.routers.answers_router.answers_router import answers_router
 from API.routers.stats_router.stats_router import stats_router
+from logging_config import setup_logging
+import logging
+setup_logging()
 
 APP_VERSION = "1.0.0"
 SERVICE_NAME = "History Bot API"
 
 
 app = FastAPI(title= SERVICE_NAME, version= APP_VERSION, description= 'Это API для работы с History_Bot')
+logger = logging.getLogger(__name__)
 
 @app.get("/health", include_in_schema=False)
 async def health():

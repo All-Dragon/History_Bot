@@ -5,7 +5,6 @@ import asyncio
 from aiogram.fsm.storage.memory import MemoryStorage
 from aiogram.client.bot import Bot
 from config_app import Config, load_config
-from Bot.utils.lexicon import lexicon
 from Bot.handlers.authentication_handlers.registration_handler import registration_router
 from Bot.handlers.authentication_handlers.login_handler import login_router
 from Bot.handlers.teacher_handlers.create_questions_handler import questions_router
@@ -35,7 +34,7 @@ async def start_bot(message: Message) -> None:
 
 @dp.message(Command('help'))
 async def help(message: Message) -> None:
-    await message.answer(lexicon['/help'])
+    await message.answer('Помощь')
 
 
 

@@ -230,3 +230,4 @@ venv/
 .vscode/
 .DS_Store
 .env.docker
+*.log

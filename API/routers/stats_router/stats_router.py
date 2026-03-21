@@ -4,7 +4,9 @@ from Database.models import *
 from fastapi import Depends, status, HTTPException, APIRouter
 from API.routers.stats_router.stats_schemas import *
 from JWT.auth import require_role, get_current_user
+import logging
 
+logger = logging.getLogger(__name__)
 stats_router = APIRouter(
     prefix= '/stats',
     tags= ['statistics']
@@ -13,7 +15,7 @@ stats_router = APIRouter(
 @stats_router.get('/my_stats', response_model= AnswersStats)
 async def get_answer_my_stats(session: AsyncSession = Depends(get_async_session),
                               current_user: Users = Depends(get_current_user)):
-
+    logger.info('Извлечение статистики пользователя %s', current_user.telegram_id)
     try:
         result = await session.execute(
             select(
@@ -48,10 +50,11 @@ async def get_answer_my_stats(session: AsyncSession = Depends(get_async_session)
             'total_question': stats_row.total_question or 0,
             'right_answer': stats_row.right_answer or 0
         }
-
+        logger.info('Успешное извлечение статистики пользователя %s', current_user.telegram_id)
         return AnswersStats(**stats_data)
 
     except Exception as e:
+        logger.exception('Ошибка при извлечении статистики пользователя %s', current_user.telegram_id)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to retrieve statistics"
@@ -61,6 +64,7 @@ async def get_answer_my_stats(session: AsyncSession = Depends(get_async_session)
 @stats_router.get('/admin/overview', response_model=Stats_User)
 async def get_stats_user(session: AsyncSession = Depends(get_async_session),
                          current_user: Users = Depends(require_role('Админ'))):
+    logger.info('Извлечение статистики по использованию сервиса')
     try:
         result = await session.execute(
             select(
@@ -85,9 +89,11 @@ async def get_stats_user(session: AsyncSession = Depends(get_async_session),
             'current_user': stats_row.current_user,
             'deleted_user': stats_row.deleted_user
         }
+        logger.info('Успешное извелечени статистики по использованию сервиса')
         return Stats_User(**stats_data)
 
     except Exception as e:
+        logger.exception('Не удалось получить статистику по использованию сервиса')
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to retrieve statistics"
@@ -98,9 +104,11 @@ async def get_stats_user(session: AsyncSession = Depends(get_async_session),
 async def get_answers(question_id: int,
                       session: AsyncSession = Depends(get_async_session),
                       current_user: Users = Depends(require_role('Преподаватель', 'Админ'))):
+    logger.info('Получение ответов на вопрос %s', question_id)
 
     question = await session.get(Questions, question_id)
     if not question or question.created_by != current_user.id:
+        logger.warning('У пользователя %s нет доступа к запрашиваемому вопросу %s', current_user.telegram_id, question_id)
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail= 'Нет доступа к этому вопросу')
 
     try:
@@ -112,6 +120,7 @@ async def get_answers(question_id: int,
         )
 
         answers = result.scalars().all()
+        logger.info('Успешное получение ответов на вопрос %s', question_id)
         return [
             AnswerDetail(
                 username=answer.user.username if answer.user else "Аноним",
@@ -122,6 +131,7 @@ async def get_answers(question_id: int,
             for answer in answers
         ]
     except Exception as e:
+        logger.exception('Не удалось получить ответы на вопрос %s', question_id)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to retrieve answers"
