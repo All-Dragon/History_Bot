@@ -1,4 +1,5 @@
 import pytest_asyncio
+import logging
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
 from sqlalchemy.pool import NullPool
 from Database.models import Base
@@ -6,6 +7,13 @@ from httpx import AsyncClient, ASGITransport
 from API.main import app
 from Database.database import get_async_session
 from config_app import generate_url_db
+
+# Отключаем FileHandler для тестов (блокирует event loop)
+for logger_name in ['API', 'Bot', 'uvicorn', 'uvicorn.access', 'uvicorn.error']:
+    logger = logging.getLogger(logger_name)
+    for handler in logger.handlers[:]:
+        if isinstance(handler, logging.FileHandler):
+            logger.removeHandler(handler)
 
 url = generate_url_db() + '_Test'
 test_engine = create_async_engine(url, poolclass=NullPool)
@@ -26,7 +34,7 @@ async def setup_database():
 
 @pytest_asyncio.fixture
 async def db_session():
-    async with AsyncSession(test_engine) as session:
+    async with AsyncSession(test_engine, expire_on_commit=False) as session:
         # Начинаем транзакцию без контекстного менеджера
         await session.begin()
         yield session

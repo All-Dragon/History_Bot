@@ -33,9 +33,9 @@ async def regular_user(client):
 
 
 @pytest.mark.parametrize('telegram_id, username, role, is_banned, reason, expires_at', [
-    (100, 'User01', 'Ученик', False, 'Spam', None),
+    (100, 'User01', 'Преподаватель', False, 'Spam', None),
     (101, 'User02', 'Преподаватель', False, 'Cheating', None),
-    (102, 'User03', 'Ученик', False, 'Temporary ban', datetime.now(timezone.utc) + timedelta(days=7))
+    (102, 'User03', 'Преподаватель', False, 'Temporary ban', datetime.now(timezone.utc) + timedelta(days=7))
 ])
 async def test_create_ban(client, admin_token, telegram_id, username, role, is_banned, reason, expires_at):
     response_create = await client.post('/users/create', 
