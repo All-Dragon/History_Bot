@@ -104,7 +104,7 @@ async def change(telegram_id: int,
 async def hard_delete_user(
         telegram_id: int,
         session: AsyncSession = Depends(get_async_session),
-        current_user: Users = Depends(require_role('Преподаватель', 'Админ'))):
+        current_user: Users = Depends(require_role('Админ'))):
     logger.info('Удаление пользователя %s', telegram_id)
     item_to_del = await session.scalar(select(Users).where(Users.telegram_id == id))
     if item_to_del is None:
