@@ -2,6 +2,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from Database.models import Users
 from datetime import datetime, timezone
+from API.routers.users_router.users_schemas import CreateUser
 
 class UserRepository:
     @staticmethod
@@ -14,6 +15,20 @@ class UserRepository:
     async def get_by_telegram_id(session: AsyncSession,
                                  telegram_id: int):
         return await session.scalar(select(Users).where(Users.telegram_id == telegram_id))
+
+    @staticmethod
+    async def create_user(session: AsyncSession,
+                          data: CreateUser):
+        new_user = Users(
+            telegram_id=data.telegram_id,
+            username=data.username,
+            role=data.role,
+            is_banned=data.is_banned
+        )
+        session.add(new_user)
+        await session.commit()
+        await session.refresh(new_user)
+        return new_user
 
     @staticmethod
     async def change_name(
@@ -95,14 +110,3 @@ class UserRepository:
         except Exception as e:
             await session.rollback()
         return
-
-
-
-'''result = await session.execute(
-        update(Users)
-        .where(
-            Users.by_telegram_id(telegram_id),
-               Users.active()
-           ).values(deleted_at = datetime.now(timezone.utc))
-        .returning(Users.telegram_id)
-    )'''

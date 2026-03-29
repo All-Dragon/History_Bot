@@ -5,9 +5,10 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from JWT.security import create_access_token
 from JWT.token_shemas import Token, Telegram_Login
 from API.routers.users_router.users_schemas import CreateUser, User_Out, Change_User
+from Database.models import Users
 
 logger = logging.getLogger(__name__)
-from Database.models import Users
+
 class UserService:
     @staticmethod
     async def get_all(
@@ -47,16 +48,10 @@ class UserService:
             logger.error('Пользователь с таким telegram_id: %s уже существует!', data.telegram_id)
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail='Пользователь уже существует!')
 
-        new_user = Users(
-            telegram_id=data.telegram_id,
-            username=data.username,
-            role=data.role,
-            is_banned=data.is_banned
-        )
         try:
-            session.add(new_user)
-            await session.commit()
-            await session.refresh(new_user)
+            new_user = await UserRepository.create_user(session = session,
+                                                        data = data)
+
             logger.info('Пользователь %s успешно создан!', data.telegram_id)
         except Exception as e:
             logger.exception('Ошибка создания пользователя %s', data.telegram_id)
