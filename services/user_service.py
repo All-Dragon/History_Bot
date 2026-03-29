@@ -2,8 +2,6 @@ from repositories.users_router import UserRepository
 import logging
 from fastapi import HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
-from JWT.security import create_access_token
-from JWT.token_shemas import Token, Telegram_Login
 from API.routers.users_router.users_schemas import CreateUser, User_Out, Change_User
 from Database.models import Users
 

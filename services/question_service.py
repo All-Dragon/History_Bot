@@ -2,8 +2,6 @@ from repositories.question_router import QuestionRepository
 import logging
 from fastapi import HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
-from JWT.security import create_access_token
-from JWT.token_shemas import Token, Telegram_Login
 from API.routers.questions_router.questions_shemas import QuestionCreate
 from Database.models import Users
 from typing import Optional
