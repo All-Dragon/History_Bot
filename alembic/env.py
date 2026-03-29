@@ -8,8 +8,8 @@ from sqlalchemy.ext.asyncio import async_engine_from_config
 from alembic import context
 
 # Твои импорты (подставь правильные пути)
-from Database.models import Base           # ← твои модели
-from config_app import generate_url_db     # или from config import settings
+from app.Database.models import Base           # ← твои модели
+from app.core.config_app import generate_url_db     # или from config import settings
 
 
 # Alembic Config объект

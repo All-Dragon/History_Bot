@@ -7,7 +7,7 @@ async def test_login_token(client, mocker):
         'telegram_id': 777, 'username': 'Test', 'role': 'Ученик', 'is_banned': False
     })
 
-    mock_token = mocker.patch("services.auth_service.create_access_token")
+    mock_token = mocker.patch("app.services.auth.create_access_token")
     mock_token.return_value = 'fake'
 
     response = await client.post('/auth/login', json = {'telegram_id': 777})
@@ -19,7 +19,7 @@ async def test_error_login_token(client, mocker):
         'telegram_id': 777, 'username': 'Test', 'role': 'Ученик', 'is_banned': False
     })
 
-    mock_token = mocker.patch('services.auth_service.create_access_token')
+    mock_token = mocker.patch('app.services.auth.create_access_token')
     mock_token.side_effect = Exception("Ошибка генерации токена")
 
     response = await client.post('/auth/login', json = {'telegram_id': 777})

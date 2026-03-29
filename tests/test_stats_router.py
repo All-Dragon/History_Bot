@@ -1,9 +1,5 @@
 import pytest
 import pytest_asyncio
-from datetime import datetime, timezone
-
-from Database.models import Users, Questions, Answers
-from sqlalchemy import select
 
 
 @pytest_asyncio.fixture
