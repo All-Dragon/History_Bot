@@ -5,13 +5,13 @@ from sqlalchemy import event
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from sqlalchemy.pool import NullPool
 
-from API.main import app
-from Database.database import get_async_session
-from Database.models import Base
-from config_app import generate_url_db
+from app.api.main import app
+from app.Database.database import get_async_session
+from app.Database.models import Base
+from app.core.config_app import generate_url_db
 from httpx import ASGITransport, AsyncClient
 
-for logger_name in ["API", "Bot", "uvicorn", "uvicorn.access", "uvicorn.error"]:
+for logger_name in ["api", "Bot", "uvicorn", "uvicorn.access", "uvicorn.error"]:
     logger = logging.getLogger(logger_name)
     for handler in logger.handlers[:]:
         if isinstance(handler, logging.FileHandler):

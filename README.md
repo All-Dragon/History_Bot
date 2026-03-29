@@ -193,7 +193,7 @@ alembic upgrade head
 
 #### 3. Запустите API сервер
 ```bash
-cd API
+cd api
 python -m uvicorn main:app --reload --host 0.0.0.0 --port 8000
 ```
 
@@ -254,7 +254,7 @@ pytest -v
 
 С покрытием:
 ```bash
-pytest --cov=API --cov=Bot
+pytest --cov=api --cov=Bot
 ```
 
 ---

@@ -2,7 +2,7 @@ name: Project CI
 
 on:
   push:
-    branches: [main, ci]
+    branches: [main, refactor]
   pull_request:
 
 jobs:

@@ -2,9 +2,6 @@ import pytest
 import pytest_asyncio
 from datetime import datetime, timedelta, timezone
 
-from Database.models import Users, Ban
-from sqlalchemy import select
-
 
 @pytest_asyncio.fixture
 async def admin_token(client):
