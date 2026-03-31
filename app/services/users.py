@@ -2,7 +2,7 @@ from app.repositories.users import UserRepository
 import logging
 from fastapi import HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
-from app.Database.models import Users
+from app.db.models import Users
 from app.schemas.users import CreateUser, Change_User
 
 logger = logging.getLogger(__name__)

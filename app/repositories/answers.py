@@ -1,6 +1,6 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
-from app.Database.models import Users, Answers
+from app.db.models import Users, Answers
 from app.schemas.answers import AnswerCreate
 
 class AnswerRepository:

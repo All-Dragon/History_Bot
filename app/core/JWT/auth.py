@@ -3,8 +3,8 @@ from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from app.core.JWT.security import decode_token
-from app.Database.database import get_async_session
-from app.Database.models import Users
+from app.db.database import get_async_session
+from app.db.models import Users
 from app.core.JWT.token_shemas import Token_Data
 import logging
 

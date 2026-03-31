@@ -1,6 +1,6 @@
 from app.services.answers import AnswerService
-from app.Database.database import get_async_session, AsyncSession
-from app.Database.models import *
+from app.db.database import get_async_session, AsyncSession
+from app.db.models import *
 from fastapi import Depends, status, APIRouter
 from app.schemas.answers import *
 from app.core.JWT.auth import require_role, get_current_user

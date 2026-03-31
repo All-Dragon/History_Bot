@@ -2,7 +2,7 @@ from app.repositories.questions import QuestionRepository
 import logging
 from fastapi import HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
-from app.Database.models import Users
+from app.db.models import Users
 from app.schemas.questions import QuestionCreate
 from typing import Optional
 logger = logging.getLogger(__name__)

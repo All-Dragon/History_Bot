@@ -4,7 +4,7 @@ import logging
 from fastapi import HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.schemas.answers import AnswerCreate
-from app.Database.models import Users
+from app.db.models import Users
 logger = logging.getLogger(__name__)
 
 class AnswerService:
