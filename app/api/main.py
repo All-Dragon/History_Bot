@@ -3,12 +3,9 @@ import logging
 from fastapi import FastAPI
 from fastapi.responses import HTMLResponse
 
-from app.api.routers.answers import answers_router
-from app.api.routers.auth import authorization_router
-from app.api.routers.bans import bans_router
-from app.api.routers.questions import questions_router
-from app.api.routers.stats import stats_router
-from app.api.routers.users import users_router
+from app.api.routers import (authorization_router, users_router, questions_router,
+                             answers_router, bans_router, stats_router)
+
 from app.core.logging_config import setup_logging
 setup_logging()
 

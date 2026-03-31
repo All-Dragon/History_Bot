@@ -1,7 +1,7 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from app.db.models import Users, Answers
-from app.schemas.answers import AnswerCreate
+from app.schemas import AnswerCreate
 
 class AnswerRepository:
     @staticmethod

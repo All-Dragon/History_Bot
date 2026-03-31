@@ -2,7 +2,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from app.db.models import Users
 from datetime import datetime, timezone
-from app.schemas.users import CreateUser
+from app.schemas import CreateUser
 
 class UserRepository:
     @staticmethod

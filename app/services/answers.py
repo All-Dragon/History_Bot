@@ -1,9 +1,8 @@
-from app.repositories.answers import AnswerRepository
-from app.repositories.questions import QuestionRepository
+from app.repositories import AnswerRepository, QuestionRepository
 import logging
 from fastapi import HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
-from app.schemas.answers import AnswerCreate
+from app.schemas import AnswerCreate
 from app.db.models import Users
 logger = logging.getLogger(__name__)
 

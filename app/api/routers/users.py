@@ -1,4 +1,4 @@
-from app.schemas.users import *
+from app.schemas import User_Out, CreateUser, Change_User, ReadUser, ChangeName
 from app.db.database import get_async_session, AsyncSession
 from app.db.models import *
 from fastapi import Depends, status, APIRouter

@@ -3,7 +3,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.database import get_async_session
 from app.core.JWT.token_shemas import Token, Telegram_Login
-from app.services.auth import AuthService
+from app.services import AuthService
 
 
 authorization_router = APIRouter(prefix = '/auth', tags= ['auth'])

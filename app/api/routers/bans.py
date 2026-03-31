@@ -1,7 +1,7 @@
-from app.schemas.bans import *
-from app.services.bans import BanService
+from app.schemas import Ban_Info, Ban_Create, Ban_Read
+from app.services import BanService
 from app.db.database import get_async_session, AsyncSession
-from app.db.models import *
+from app.db.models import Users
 from fastapi import Depends, status, APIRouter
 from app.core.JWT.auth import require_role
 import logging
