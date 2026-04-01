@@ -1,99 +1,205 @@
-# 📚 History Bot
+# History Bot
 
-Сервис для управления образовательными тестами и вопросами через Telegram бот с REST API.
+History Bot — это backend-проект с Telegram-ботом и REST API для работы с пользователями, вопросами, ответами, статистикой и банами.
 
-## 🎯 Возможности
+Проект состоит из двух основных частей:
 
-- **Telegram Bot** — интерфейс для учеников и учителей
-- **REST API** — полнофункциональное API для интеграций
-- **Система аутентификации** — JWT-токены с ролевым доступом
-- **Управление вопросами** — создание, редактирование, категоризация вопросов
-- **Система тестирования** — проведение тестов, отслеживание результатов
-- **Статистика** — аналитика по пользователям и результатам
-- **Система банов** — управление доступом пользователей
-- **Асинхронная БД** — PostgreSQL с asyncpg для высокой производительности
+- `FastAPI` API, через которое работает бизнес-логика и база данных
+- `Aiogram`-бот, который использует это API как клиент
 
----
+## Быстрый старт
 
-## 📋 Требования
+Если нужен самый короткий путь до первого запуска:
 
-- **Python** 3.10+
-- **PostgreSQL** 12+
-- **Redis** (опционально)
-- **Docker & Docker Compose** (для контейнеризации)
+1. Скопировать `.env.example` в `.env`
+2. Заполнить `BOT_TOKEN`, `DB_*`, `SECRET_KEY`
+3. Поднять PostgreSQL и Redis
+4. Выполнить `alembic upgrade head`
+5. Запустить API: `uvicorn app.api.main:app --reload`
+6. Запустить бота: `python -m app.Bot.main`
 
----
-## 🛠 Стек проекта
+## Что умеет проект
 
-- Python 3.10+
+### API
+
+- регистрация пользователей и вход по `telegram_id`
+- выдача JWT-токена
+- просмотр своего профиля и смена имени
+- создание и просмотр вопросов
+- выдача случайного опубликованного вопроса
+- отправка ответов
+- просмотр личной статистики
+- админская статистика по пользователям
+- бан и разбан пользователей
+- soft delete / restore пользователя
+
+### Telegram-бот
+
+- регистрация
+- логин
+- просмотр профиля
+- смена имени
+- получение случайного вопроса
+- получение вопроса по ID
+- просмотр личной статистики
+- админская статистика
+- создание вопросов преподавателем через пошаговый сценарий
+- просмотр своих вопросов
+- просмотр ответов на свой вопрос
+
+## Технологии
+
+- Python 3.12
 - FastAPI
-- SQLAlchemy 2.0 (async)
+- Aiogram 3
+- SQLAlchemy 2.0 Async
 - PostgreSQL
 - Alembic
-- Aiogram
-- Docker
-- Redis
-- Pytest
----
-## 🚀 Установка
+- HTTPX
+- Aiohttp
+- Pytest + pytest-asyncio + pytest-mock
+- Docker / Docker Compose
 
-### 1. Клонирование репозитория
-```bash
-git clone https://github.com/All-Dragon/History_Bot.git
-cd HistoryBot
+## Архитектура
+
+Сейчас проект организован как монолит с разделением по слоям:
+
+- `app/api` — HTTP-роуты FastAPI
+- `app/services` — бизнес-логика
+- `app/repositories` — доступ к данным
+- `app/db` — подключение к БД и ORM-модели
+- `app/schemas` — Pydantic-схемы
+- `app/core` — конфиг, JWT, логирование
+- `app/Bot` — Telegram-бот
+- `tests` — тесты API
+
+Схема взаимодействия:
+
+```text
+Telegram user
+    ↓
+Aiogram bot
+    ↓ HTTP
+FastAPI API
+    ↓
+Services
+    ↓
+Repositories
+    ↓
+PostgreSQL
 ```
 
-### 2. Создание виртуального окружения
-```bash
-python -m venv venv
-source venv/bin/activate  # Linux/macOS
-# или
-venv\Scripts\activate  # Windows
+## Структура проекта
+
+```text
+HistoryBot/
+├── app/
+│   ├── api/
+│   │   ├── main.py
+│   │   └── routers/
+│   │       ├── answers.py
+│   │       ├── auth.py
+│   │       ├── bans.py
+│   │       ├── questions.py
+│   │       ├── stats.py
+│   │       └── users.py
+│   ├── Bot/
+│   │   ├── main.py
+│   │   ├── handlers/
+│   │   │   ├── authentication_handlers/
+│   │   │   ├── teacher_handlers/
+│   │   │   ├── get_questions_handler.py
+│   │   │   └── stats_handler.py
+│   │   └── utils/
+│   ├── core/
+│   │   ├── config_app.py
+│   │   ├── logging_config.py
+│   │   └── JWT/
+│   ├── db/
+│   │   ├── database.py
+│   │   └── models/
+│   ├── repositories/
+│   ├── schemas/
+│   └── services/
+├── alembic/
+├── tests/
+├── .env.example
+├── .env.docker.example
+├── docker-compose.yaml
+├── Dockerfile
+├── alembic.ini
+├── pytest.ini
+└── requirements.txt
 ```
 
-### 3. Установка зависимостей
+## Переменные окружения
+
+Проект использует `.env` для локального запуска и `.env.docker` для контейнеров.
+
+Важно:
+
+- `ADMIN_IDS` ожидается как список чисел через запятую, например `123456789,987654321`
+- сейчас конфигурация читается централизованно, поэтому без `BOT_TOKEN` приложение тоже не стартует, даже если вы хотите поднять только API
+- подготовьте `.env` и `.env.docker` до запуска сервисов, чтобы все работало исправно
+### Как подготовить `.env` 
+
+Скопируйте пример:
+
 ```bash
-pip install -r requirements.txt
+copy .env.example .env
 ```
 
-### 4. Конфигурация переменных окружения
-Создайте файл `.env` в корне проекта:
+или на Unix/macOS:
+
+```bash
+cp .env.example .env
+```
+
+Актуальные переменные из `.env.example`:
 
 ```env
-# Database Configuration
-DB_NAME = DB_Name
-DB_HOST = DB_HOST
-DB_USER = DB_USERNAME
-DB_PASSWORD = YOUR_DB_PASSWORD
-DB_PORT = DB_PORT
+BOT_TOKEN=your_telegram_bot_token_here
+ADMIN_IDS=your_admin_ids
 
-# Bot Configuration
-BOT_TOKEN=YOUR_BOT_TOKEN
-ADMIN_IDS= YOUR_ADMIN_LIST
+DB_NAME=your_db_name
+DB_HOST=localhost
+DB_PORT=5432
+DB_USER=postgres
+DB_PASSWORD=your_password
 
-# Redis Configuration
-REDIS_DATABASE=1
-REDIS_HOST=YOUR_REDIS_HOST
-REDIS_PORT=YOUR_REDIS_PORT
-REDIS_USERNAME=YOUR_REDIS_USERNAME
-REDIS_PASSWORD=YOUR_REDIS_PASSWORD
+REDIS_HOST=localhost
+REDIS_PORT=6379
+REDIS_DATABASE=0
+REDIS_USERNAME=default
+REDIS_PASSWORD=default
 
-# API Configuration
-API_BASE_URL = API_BASE_URL
+API_BASE_URL=http://localhost:8000
 
-# JWT Configuration
 SECRET_KEY=your_super_secret_key_change_this_in_production
 ALGORITHM=HS256
 ACCESS_TOKEN_EXPIRE_MINUTES=30
 ```
 
-Создайте файл `.env.docker` в корне проекта:
+### Как подготовить `.env.docker`
+
+Скопируйте пример:
+
+```bash
+copy .env.docker.example .env.docker
 ```
-# Bot Configuration
+
+или:
+
+```bash
+cp .env.docker.example .env.docker
+```
+
+Актуальные переменные из `.env.docker.example`:
+
+```env
 BOT_TOKEN=your_telegram_bot_token_here
 ADMIN_IDS=your_admin_ids
 
-# Database Configuration
 DB_NAME=your_db_name
 DB_HOST=db
 DB_PORT=5432
@@ -101,260 +207,197 @@ DB_USER=postgres
 DB_PASSWORD=your_password
 DATABASE_URL=postgresql+asyncpg://postgres:your_password@db:5432/your_db_name
 
-# Redis Configuration
 REDIS_HOST=redis
 REDIS_PORT=6379
 REDIS_DATABASE=0
 REDIS_USERNAME=default
 REDIS_PASSWORD=your_redis_password
 
-# API Configuration
 API_BASE_URL=http://app:8000
 
-# JWT Configuration
 SECRET_KEY=your_secret_key
 ALGORITHM=HS256
 ACCESS_TOKEN_EXPIRE_MINUTES=30
 ```
 
----
+## Локальный запуск
 
-## 📦 Структура проекта
+### 1. Установить зависимости
 
-```
-HistoryBot/
-├── API/                    # REST API (FastAPI)
-│   ├── main.py
-│   └── routers/           # Маршруты по сущностям
-│       ├── auth.py
-│       ├── users_router/
-│       ├── questions_router/
-│       ├── answers_router/
-│       ├── stats_router/
-│       ├── bans_router/
-│       └── tests_router/
-│
-├── Bot/                    # Telegram Bot (Aiogram)
-│   ├── main.py
-│   ├── handlers/          # Обработчики команд
-│   │   ├── authentication_handlers/
-│   │   ├── teacher_handlers/
-│   │   ├── get_questions_handler.py
-│   │   └── stats_handler.py
-│   └── utils/            # Вспомогательные функции
-│       ├── auth_check.py
-│       └──keyboards.py
-│       
-│
-├── Database/              # Слой базы данных
-│   ├── database.py        # Подключение и сессии
-│   └── models.py          # SQLAlchemy модели
-│
-├── JWT/                   # Аутентификация и безопасность
-│   ├── auth.py
-│   ├── security.py
-│   └── token_shemas.py
-│
-├── alembic/              # Миграции базы данных
-│   ├── env.py
-│   ├── versions/
-│   └── script.py.mako
-│
-├── tests/                # Модульные и интеграционные тесты
-│   ├── conftest.py
-│   ├── test_questions_router.py
-│   ├── test_user_router.py
-│   └── test_answer_router.py
-│
-├── config_app.py         # Конфигурация приложения
-├── docker-compose.yaml   # Docker Compose конфиг
-├── Dockerfile            # Docker образ
-├── alembic.ini          # Alembic конфиг для миграций
-├── pytest.ini           # Pytest конфиг
-├── requirements.txt     # Зависимости Python
-└── README.md           # Этот файл
-```
-
----
-
-## ▶️ Запуск
-
-### Локально
-
-#### 1. Подготовьте базу данных
 ```bash
-# Убедитесь, что PostgreSQL запущен и БД создана
+python -m venv .venv
+.venv\Scripts\activate
+pip install -r requirements.txt
 ```
 
-#### 2. Примените миграции
+### 2. Поднять PostgreSQL и Redis
+
+Нужны:
+
+- PostgreSQL
+- Redis
+
+Можно использовать локально установленные сервисы или контейнеры.
+
+### 3. Применить миграции
+
 ```bash
 alembic upgrade head
 ```
 
-#### 3. Запустите API сервер
-```bash
-cd api
-python -m uvicorn main:app --reload --host 0.0.0.0 --port 8000
-```
-
-API будет доступен по адресу: `http://localhost:8000`
-
-#### 4. В другом терминале запустите Telegram Bot
-```bash
-cd Bot
-python main.py
-```
-
-### Docker Compose
+### 4. Запустить API
 
 ```bash
-docker-compose up -d
+uvicorn app.api.main:app --reload --host 0.0.0.0 --port 8000
 ```
 
-Сервисы:
-- **API**: `http://localhost:8000`
-- **PostgreSQL**: `localhost:5432`
-- **Redis**: `localhost:6379`
+После запуска API будет доступно по адресам:
 
----
+- `http://localhost:8000`
+- `http://localhost:8000/docs`
+- `http://localhost:8000/redoc`
+- `http://localhost:8000/health`
 
-## 📖 API Документация
+### 5. Запустить Telegram-бота
 
-После запуска API откройте в браузере:
+В отдельном терминале:
 
-- **Swagger UI**: `http://localhost:8000/docs`
-- **ReDoc**: `http://localhost:8000/redoc`
-- **Health Check**: `http://localhost:8000/health`
+```bash
+python -m app.Bot.main
+```
 
-### Основные эндпоинты
+## Docker
 
-| Метод | Маршрут | Описание |
-|-------|---------|---------|
-| GET | `/health` | Проверка статуса сервера |
-| POST | `/auth/login` | Аутентификация пользователя |
-| GET | `/question` | Получить все вопросы |
-| POST | `/question` | Создать вопрос (только учителя) |
-| GET | `/stats/my_stats` | Получить личную статистику |
-| GET | `/stats/admin/overview` | Статистика админа |
-| POST | `/bans` | Забанить пользователя |
+В репозитории есть `Dockerfile` и `docker-compose.yaml`, для запуска сборки использовать команду ниже:
 
----
+```bash
+docker compose up --build
+```
 
-## 🧪 Тестирование
+Обязательно должен быть заполнен файл:`.env.docker`
 
-Запустите тесты:
+## API-роуты
+
+### Auth
+
+- `POST /auth/login` — получить JWT по `telegram_id`
+
+### Users
+
+- `GET /users` — получить список пользователей, только админ
+- `GET /users/me` — получить свой профиль
+- `POST /users/create` — создать пользователя
+- `PUT /users/me/name` — изменить свое имя
+- `PUT /users/change/{telegram_id}` — изменить пользователя, только админ
+- `DELETE /users/hard_del/{telegram_id}` — удалить пользователя, только админ
+- `DELETE /users/soft_del` — soft delete текущего пользователя
+- `PUT /users/restore_user` — восстановить текущего пользователя
+- `GET /users/{telegram_id}` — получить пользователя по `telegram_id`
+
+### Questions
+
+- `GET /question` — все вопросы, преподаватель или админ
+- `GET /question/my` — свои вопросы, преподаватель или админ
+- `GET /question/random` — случайный опубликованный вопрос
+- `GET /question/{question_id}` — вопрос по ID
+- `POST /question/new` — создать вопрос, преподаватель или админ
+
+### Answers
+
+- `GET /answers` — все ответы, только админ
+- `POST /answers/create` — отправить ответ
+- `GET /answers/{answer_id}` — получить ответ по ID, только админ
+
+### Bans
+
+- `GET /bans` — список банов, только админ
+- `GET /bans/{telegram_id}` — информация о бане, только админ
+- `POST /bans` — забанить пользователя, только админ
+- `DELETE /bans/{telegram_id}` — разбанить пользователя, только админ
+
+### Stats
+
+- `GET /stats/my_stats` — личная статистика
+- `GET /stats/admin/overview` — статистика по пользователям, только админ
+- `GET /stats/questions/{question_id}/answers` — ответы на вопрос, преподаватель или админ
+
+## Команды Telegram-бота
+
+### Общие
+
+- `/start` - начало работы с ботом
+- `/help` - получение помощи по командам
+- `/registration` - регистрация
+- `/login` - вход в систему
+- `/profile` - просмотр своего профиля
+- `/change_name` - смена имени пользователя
+- `/random` - случайный вопрос
+- `/question <id>` - получение вопроса по его id
+- `/my_stats` - статистика пользователя
+
+### Для преподавателя
+
+- `/add_question` - добавить вопрос
+- `/my_questions` - созданные пользователем вопросы
+- `/result <question_id>` - просмотр ответов на вопрос question_id
+
+### Для администратора
+
+- `/users_states` - статистика по использованию сервиса
+
+## Роли
+
+В проекте используются три роли:
+
+- `Ученик`
+- `Преподаватель`
+- `Админ`
+
+Роли проверяются в API через JWT-зависимости, а в боте — через запросы к API.
+
+## Тесты
+
+Тесты находятся в папке `tests/`.
+
+Запуск:
+
 ```bash
 pytest
 ```
 
-С подробным выводом:
+Или подробнее:
+
 ```bash
 pytest -v
 ```
 
-С покрытием:
+Особенности:
+
+- тесты используют отдельную тестовую БД с суффиксом `_Test`
+- `tests/conftest.py` переопределяет зависимость `get_async_session`
+- для изоляции тестов используется внешняя транзакция и nested transaction/savepoint
+
+## Миграции
+
+Для управления схемой используется Alembic.
+
+Основные команды:
+
 ```bash
-pytest --cov=api --cov=Bot
+alembic upgrade head
+alembic downgrade -1
+alembic revision --autogenerate -m "message"
 ```
 
----
+Файл конфигурации Alembic: `alembic/env.py`
 
-## 🔐 Аутентификация
+## Полезные файлы
 
-Проект использует **JWT (JSON Web Tokens)** для аутентификации:
+- `app/api/main.py` — точка входа FastAPI
+- `app/Bot/main.py` — точка входа Telegram-бота
+- `app/core/config_app.py` — загрузка конфигурации
+- `app/db/database.py` — подключение к БД
+- `app/db/models/__init__.py` — экспорт моделей
+- `tests/conftest.py` — тестовая инфраструктура
 
-1. Пользователь отправляет учетные данные
-2. Сервер возвращает JWT токен
-3. Токен включается в заголовок `Authorization: Bearer <token>`
-4. Сервер проверяет токен для защищенных маршрутов
 
-### Роли
-
-- **Админ** — полный доступ ко всем функциям
-- **Преподаватель** — создание и управление вопросами
-- **Ученик** — прохождение тестов и просмотр результатов
-
----
-
-## 📦 Требования к БД
-
-### PostgreSQL расширения
-```sql
--- Убедитесь, что установлены:
-CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
-```
-
-### Автоматические зависимости
-При установке основных пакетов из `requirements.txt` также установятся:
-- `aiofiles`, `certifi`, `cryptography` — для безопасности и файлов
-- `httpx`, `httpcore` — для HTTP запросов
-- `Mako`, `MarkupSafe` — для Alembic шаблонов
-- и другие служебные пакеты
-
----
-
-## ⚙️ Конфигурация
-
-### Переменные окружения
-
-| Переменная | Описание | По умолчанию |
-|-----------|---------|-------------|
-| `BOT_TOKEN` | Токен Telegram бота | *(обязательно)* |
-| `ADMIN_IDS` | ID админов через запятую | [] |
-| `DB_NAME` | Имя БД | - |
-| `DB_HOST` | Хост БД | localhost |
-| `DB_PORT` | Порт БД | 5432 |
-| `DB_USER` | Пользователь БД | - |
-| `DB_PASSWORD` | Пароль БД | - |
-| `REDIS_HOST` | Хост Redis | localhost |
-| `REDIS_PORT` | Порт Redis | 6379 |
-| `SECRET_KEY` | Секретный ключ JWT | *(обязательно)* |
-| `ALGORITHM` | Алгоритм JWT | HS256 |
-| `ACCESS_TOKEN_EXPIRE_MINUTES` | Время жизни токена | 30 |
-| `API_BASE_URL` | URL API сервера | http://localhost:8000 |
-
----
-
-## 🐛 Решение проблем
-
-### Ошибка подключения к БД
-```
-ensure you have set the correct password and are using the correct host
-```
-**Решение**: Проверьте переменные окружения в `.env`
-
-### Telegram бот не отвечает
-```
-Socket hang up
-```
-**Решение**: Убедитесь, что `BOT_TOKEN` правильный и интернет подключен
-
-### Миграции не применяются
-```
-FAILED: Can't locate revision identified by 'abc123'
-```
-**Решение**: Используйте `alembic current` для проверки текущей версии
-
----
-
-## 📝 Лицензия
-
-MIT License - см. LICENSE файл
-
----
-
-## 👥 Контрибьютинг
-
-1. Fork репозиторий
-2. Создайте branch (`git checkout -b feature/AmazingFeature`)
-3. Commit изменений (`git commit -m 'Add some AmazingFeature'`)
-4. Push в branch (`git push origin feature/AmazingFeature`)
-5. Откройте Pull Request
-
----
-
-## 📧 Поддержка
-
-По вопросам и предложениям пишите в Issues или на почту.
-
----

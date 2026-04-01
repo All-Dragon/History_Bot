@@ -1,8 +1,8 @@
-from app.schemas.questions import *
-from app.Database.database import get_async_session, AsyncSession
-from app.Database.models import *
+from app.schemas import QuestionCreate, QuestionOut
+from app.db.database import get_async_session, AsyncSession
+from app.db.models import Users
 from fastapi import Depends, status, APIRouter
-from typing import List
+from typing import List, Optional
 from app.core.JWT.auth import require_role
 from app.services.questions import QuestionService
 import logging

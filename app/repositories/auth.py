@@ -1,6 +1,6 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
-from app.Database.models import Users
+from app.db.models import Users
 
 class LoginRepository:
     @staticmethod

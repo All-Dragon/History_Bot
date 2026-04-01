@@ -1,11 +1,9 @@
-from app.repositories.stats import StatRepository
-from app.repositories.questions import QuestionRepository
+from app.repositories import StatRepository, QuestionRepository
 import logging
 from fastapi import HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
-from app.Database.models import Users
-from app.schemas.stats import AnswersStats, Stats_User, AnswerDetail
-
+from app.db.models import Users
+from app.schemas import AnswersStats, Stats_User, AnswerDetail
 
 logger = logging.getLogger(__name__)
 

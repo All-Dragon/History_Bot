@@ -3,10 +3,9 @@ import logging
 from fastapi import HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.Database.models import Users
-from app.repositories.bans import BanRepository
-from app.repositories.users import UserRepository
-from app.schemas.bans import Ban_Info, Ban_Create
+from app.db.models import Users
+from app.repositories import BanRepository, UserRepository
+from app.schemas import Ban_Info, Ban_Create
 
 logger = logging.getLogger(__name__)
 

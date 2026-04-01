@@ -1,7 +1,7 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
-from app.Database.models import Users, Ban
-from app.schemas.bans import Ban_Create
+from app.db.models import Users, Ban
+from app.schemas import Ban_Create
 
 class BanRepository:
     @staticmethod

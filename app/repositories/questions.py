@@ -1,8 +1,8 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func
-from app.Database.models import Questions, Users
+from app.db.models import Questions, Users
 from typing import Optional
-from app.schemas.questions import QuestionCreate
+from app.schemas import QuestionCreate
 class QuestionRepository:
     @staticmethod
     async def get_all_questions(session: AsyncSession):

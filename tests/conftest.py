@@ -6,8 +6,8 @@ from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from sqlalchemy.pool import NullPool
 
 from app.api.main import app
-from app.Database.database import get_async_session
-from app.Database.models import Base
+from app.db.database import get_async_session
+from app.db.models import Base
 from app.core.config_app import generate_url_db
 from httpx import ASGITransport, AsyncClient
 
