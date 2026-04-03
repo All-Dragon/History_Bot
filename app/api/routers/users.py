@@ -77,5 +77,6 @@ async def restore_user(
 
 @users_router.get('/{telegram_id}')
 async def get_user(telegram_id: int,
-                   session: AsyncSession = Depends(get_async_session)):
+                   session: AsyncSession = Depends(get_async_session),
+                   current_user: Users = Depends(require_role('Админ'))):
     return await UserService.get_by_telegram_id(session = session, telegram_id = telegram_id)

@@ -12,3 +12,4 @@ class Token_Data(BaseModel):
 
 class Telegram_Login(BaseModel):
     telegram_id: int
+    password: str
