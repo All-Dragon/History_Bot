@@ -65,3 +65,7 @@ class User_Out(BaseModel):
 
 class ChangeName(BaseModel):
     name: str
+
+class Change_Password(BaseModel):
+    old_password: str = Field(..., description = 'Old password')
+    new_password: str = Field(..., description = 'New password')

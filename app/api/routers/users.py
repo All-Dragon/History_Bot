@@ -1,4 +1,4 @@
-from app.schemas import User_Out, CreateUser, Change_User, ReadUser, ChangeName
+from app.schemas import User_Out, CreateUser, Change_User, ReadUser, ChangeName, Change_Password
 from app.db.database import get_async_session, AsyncSession
 from app.db.models import *
 from fastapi import Depends, status, APIRouter
@@ -41,6 +41,20 @@ async def change_name(data: ChangeName,
     )
     return User_Out.model_validate(updated_user)
 
+@users_router.put('/change_password', response_model= ReadUser)
+async def change_password(data: Change_Password,
+                          session: AsyncSession = Depends(get_async_session),
+                          current_user: Users = Depends(get_current_user),
+                          ):
+    updated_user = await UserService.change_password(
+        session = session,
+        current_user = current_user,
+        data = data
+    )
+    return ReadUser.model_validate(updated_user)
+
+
+
 @users_router.put('/change/{telegram_id}', response_model= ReadUser)
 async def change(telegram_id: int,
                  data: Change_User,
@@ -74,6 +88,7 @@ async def restore_user(
         current_user: Users = Depends(get_current_user)):
     user = await UserService.restore_user(session = session, current_user = current_user)
     return ReadUser.model_validate(user)
+
 
 @users_router.get('/{telegram_id}')
 async def get_user(telegram_id: int,

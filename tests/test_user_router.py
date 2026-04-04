@@ -72,6 +72,15 @@ async def test_change_name(new_name, auth_token, client):
     assert response.status_code == 200
     assert response.json().get("username") == new_name
 
+@pytest.mark.parametrize('new_password', ('new', 'test'))
+async def test_change_password(new_password, auth_token, client):
+    response = await client.put(
+        '/users/change_password',
+        json = {'old_password': TEST_PASSWORD,
+                'new_password': new_password},
+        headers = {"Authorization": f"Bearer {auth_token}"},
+    )
+    assert response.status_code == 200
 
 @pytest.mark.parametrize(
     "telegram_id, username, role, is_banned",

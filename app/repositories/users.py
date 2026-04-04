@@ -45,6 +45,17 @@ class UserRepository:
         return user
 
     @staticmethod
+    async def change_password(
+            session: AsyncSession,
+            user: Users,
+            new_password: str
+    ):
+        user.password_hash = new_password
+        await session.commit()
+        await session.refresh(user)
+        return user
+
+    @staticmethod
     async def change(
             session: AsyncSession,
             user: Users,
