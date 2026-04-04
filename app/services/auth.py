@@ -4,6 +4,7 @@ from fastapi import HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.JWT.security import create_access_token
 from app.core.JWT.token_shemas import Token, Telegram_Login
+from app.core.hash import verify_password
 
 logger = logging.getLogger(__name__)
 
@@ -29,6 +30,12 @@ class AuthService:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail="Пользователь заблокирован",
+            )
+
+        if not(verify_password(data.password, user.password_hash)):
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail='Неверный пароль'
             )
 
         try:

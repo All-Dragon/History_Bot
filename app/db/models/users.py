@@ -24,6 +24,8 @@ class Users(Base):
     telegram_id: Mapped[int] = mapped_column(BigInteger, unique=True, index=True)
     username: Mapped[Optional[str]] = mapped_column(String, nullable=True)
 
+    password_hash: Mapped[str] = mapped_column(String, nullable = False)
+
     role: Mapped[str] = mapped_column(
         user_role_enum,
         default="Ученик",

@@ -3,6 +3,7 @@ from sqlalchemy import select
 from app.db.models import Users
 from datetime import datetime, timezone
 from app.schemas import CreateUser
+from app.core.hash import hash_password
 
 class UserRepository:
     @staticmethod
@@ -19,8 +20,10 @@ class UserRepository:
     @staticmethod
     async def create_user(session: AsyncSession,
                           data: CreateUser):
+        password = hash_password(data.password)
         new_user = Users(
             telegram_id=data.telegram_id,
+            password_hash = password,
             username=data.username,
             role=data.role,
             is_banned=data.is_banned
@@ -37,6 +40,17 @@ class UserRepository:
             new_name: str
     ):
         user.username = new_name
+        await session.commit()
+        await session.refresh(user)
+        return user
+
+    @staticmethod
+    async def change_password(
+            session: AsyncSession,
+            user: Users,
+            new_password: str
+    ):
+        user.password_hash = new_password
         await session.commit()
         await session.refresh(user)
         return user

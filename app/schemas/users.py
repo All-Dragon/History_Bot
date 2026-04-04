@@ -19,6 +19,7 @@ class UsersBase(BaseModel):
 class CreateUser(UsersBase):
     role: str = Field(..., examples= ['Ученик'])
     is_banned: bool = Field(default= False, description= 'User is banned or not')
+    password: str = Field(..., description= 'User password')
 
 class ReadUser(UsersBase):
     role: str = Field(..., description="User role", examples= ['Ученик'])
@@ -64,3 +65,7 @@ class User_Out(BaseModel):
 
 class ChangeName(BaseModel):
     name: str
+
+class Change_Password(BaseModel):
+    old_password: str = Field(..., description = 'Old password')
+    new_password: str = Field(..., description = 'New password')

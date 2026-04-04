@@ -3,7 +3,8 @@ import logging
 from fastapi import HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.db.models import Users
-from app.schemas import CreateUser, Change_User
+from app.schemas import CreateUser, Change_User, Change_Password
+from app.core.hash import verify_password
 
 logger = logging.getLogger(__name__)
 
@@ -82,6 +83,34 @@ class UserService:
                 detail='Ошибки сервера',)
         return user
 
+    @staticmethod
+    async def change_password(
+            session: AsyncSession,
+            current_user: Users,
+            data: Change_Password
+    ):
+        logger.info('Смена пароля пользователя %s', current_user.telegram_id)
+
+        user = await UserRepository.get_by_telegram_id(session = session,
+                                                       telegram_id = current_user.telegram_id)
+        if not verify_password(data.old_password, user.password_hash):
+            raise HTTPException(status_code = status.HTTP_401_UNAUTHORIZED,
+                                detail = 'Указан неверный пароль')
+        try:
+            user = await UserRepository.change_password(session = session,
+                                                        user = user,
+                                                        new_password = data.new_password)
+            logger.info(
+                'Успешная смена пароля пользователя %s',
+                current_user.telegram_id, )
+        except Exception as e:
+            logger.exception(
+                'Ошибка изменения пароля пользователя %s',
+                current_user.telegram_id, )
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail='Ошибки сервера', )
+        return user
 
     @staticmethod
     async def change(

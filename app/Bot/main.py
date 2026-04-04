@@ -34,7 +34,27 @@ async def start_bot(message: Message) -> None:
 
 @dp.message(Command('help'))
 async def help(message: Message) -> None:
-    await message.answer('Помощь')
+    help_text = """
+<b>📌 Общие команды</b>
+- /start — начало работы с ботом
+- /help — получение помощи по командам
+- /registration — регистрация
+- /login — вход в систему
+- /profile — просмотр своего профиля
+- /change_name — смена имени пользователя
+- /random — случайный вопрос
+- /question &lt;id&gt; — получение вопроса по его id
+- /my_stats — статистика пользователя
+
+<b>👨‍🏫 Для преподавателя</b>
+- /add_question — добавить вопрос
+- /my_questions — созданные пользователем вопросы
+- /result &lt;question_id&gt; — просмотр ответов на вопрос
+
+<b>👑 Для администратора</b>
+- /users_states — статистика по использованию сервиса
+"""
+    await message.answer(help_text, parse_mode="HTML")
 
 
 
